@@ -1,0 +1,4 @@
+[submodule "dependencies/sunset"]
+	path = dependencies/sunset
+	url = https://github.com/itsmeft24/sunset
+	branch = x64-support

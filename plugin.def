@@ -1,0 +1,5 @@
+EXPORTS
+	Pentane_PluginInformation
+	Pentane_PluginDependencyCount
+	Pentane_PluginDependencies
+	Pentane_Main
