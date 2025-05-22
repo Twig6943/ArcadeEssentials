@@ -110,8 +110,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Game\CLinearHash.hpp" />
+    <ClInclude Include="source\Game\DynamicArray.hpp" />
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp" />
     <ClInclude Include="source\Game\Kernel.hpp" />
+    <ClInclude Include="source\Game\Renderer.hpp" />
     <ClInclude Include="source\Game\Types.hpp" />
     <ClInclude Include="source\pentane.hpp" />
   </ItemGroup>

@@ -42,6 +42,12 @@
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp">
       <Filter>Source\Game</Filter>
     </ClInclude>
+    <ClInclude Include="source\Game\DynamicArray.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Renderer.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="plugin.def">

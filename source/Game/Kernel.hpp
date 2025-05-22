@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace Kernel {
 	namespace Thread {
@@ -10,7 +11,7 @@ namespace Kernel {
 		class SingleWriterMultipleReader {};
 		class SpinLock {
 		private:
-			volatile uint32_t lock;
+			volatile std::uint32_t lock;
 		};
 	};
 };
