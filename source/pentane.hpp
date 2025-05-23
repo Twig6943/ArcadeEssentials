@@ -21,28 +21,6 @@ struct SemVer {
 
 struct PentaneUUID {
 	std::uint8_t data[16];
-	static constexpr PentaneUUID from_str(const std::string_view input) {
-		PentaneUUID uuid{};
-		std::size_t idx = 0;
-		for (std::size_t i = 0; input[i] != '\0';) {
-			if (input[i] == '-') {
-				i++;
-				continue;
-			}
-			if (input[i + 1] == '\0') {
-				throw std::invalid_argument("Incomplete hex nibble in UUID");
-			}
-			uuid.data[idx++] = (hex_char_to_byte(input[i]) << 4) | hex_char_to_byte(input[i + 1]);
-			i += 2;
-			if (idx > 16) {
-				throw std::invalid_argument("UUID string too long");
-			}
-		}
-		if (idx != 16) {
-			throw std::invalid_argument("UUID string too short");
-		}
-		return uuid;
-	}
 };
 
 struct PluginInformation {
