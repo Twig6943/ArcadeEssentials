@@ -8,7 +8,12 @@
 
 static std::atomic<bool> IS_PC = false;
 
-inline auto _CarsFrontEnd_SetScreen = (void(__thiscall*)(void*, int, char*, bool))(0x004c1440);
+inline auto FUN_00ef3a30 = (void(__thiscall*)(std::uintptr_t))(0x00ef3a30);
+inline auto FUN_0060e7d0 = (void(__thiscall*)(std::uintptr_t, int, int))(0x0060e7d0);
+inline auto FUN_0060ee20 = (void**(__thiscall*)(std::uintptr_t, void*, int))(0x0060ee20);
+inline auto FUN_00613000 = (void*(__thiscall*)(std::uintptr_t, void*))(0x00613000);
+inline auto FUN_005ff4a0 = (void(__thiscall*)(void*))(0x005ff4a0);
+inline auto _CarsFrontEnd_SetScreen = (void(__thiscall*)(void*, int, const char*, bool))(0x004c1440);
 inline auto _CarsFrontEnd_SetLevelAndUnk = (void(__thiscall*)(void*, void*))(0x004c0780);
 inline auto _CarsFrontEnd_UnkHandleTrackLengthType = (void(__thiscall*)(void*, char*))(0x004c0800);
 inline auto _CarsFrontEnd_SetGameModeIndex = (void(__thiscall*)(void*, char*))(0x004c2dc0);
@@ -19,6 +24,8 @@ inline auto GameSpecificFlashImpl_SetFlashVariableFunc = (void(__thiscall*)(clas
 inline auto GameProgressionManager_GetSomethingWeDontKnow = (int(__thiscall*)(std::uintptr_t))(0x004ead80);
 inline auto GameProgressionManager_SetSomethingWeDontKnow = (void(__thiscall*)(std::uintptr_t, int))(0x004eadc0);
 inline auto GameProgressionManager_FUN_004e8400 = (void(__thiscall*)(std::uintptr_t, bool))(0x004e8400);
+inline auto GameProgressionManager_FUN_004ebab0 = (void(__thiscall*)(std::uintptr_t, int))(0x004ebab0);
+inline auto GameProgressionManager_FUN_004ebaf0 = (void(__thiscall*)(std::uintptr_t, int))(0x004ebaf0);
 inline auto GameProgressionManager_FormatStoryMission = (char* (__thiscall*)(std::uintptr_t, int, int))(0x004eaf90);
 inline auto Flash_EngineTextureLoader_LoadTextureSet = (void* (__thiscall*)(void*, const char*, bool, int))(0x0116cd20);
 
@@ -301,13 +308,44 @@ DefineReplacementHook(OnConfirmHook) {
 			break;
 
 		case MissionSettings_Unk:
-			logger::log_format("[CarsFrontEnd::OnConfirm] Menu transition from: {} unimplemented!", menu_state);
-			// TODO
+			{
+				GameProgressionManager_FUN_004e8400(*g_GameProgressionManager, false);
+				GameProgressionManager_FUN_004ebaf0(*g_GameProgressionManager, *(reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x46C)));
+				std::uintptr_t local_34 = *(reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x3FC));
+				while (local_34 != 0 && *reinterpret_cast<int*>(local_34 + 8) != CustomSquadSeries) {
+					FUN_00ef3a30(reinterpret_cast<std::uintptr_t>(_this) + 0x3E8);
+					char* dest = *reinterpret_cast<char**>(reinterpret_cast<std::uintptr_t>(_this) + 0x408);
+					local_34 = *(reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x3FC));
+					char* suffix = strrchr(dest, '-');
+					int prefix_len = -1;
+					if (suffix != nullptr) {
+						prefix_len = suffix - dest;
+					}
+					FUN_0060e7d0(reinterpret_cast<std::uintptr_t>(_this) + 0x408, prefix_len, *reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x408) - 0xC) - prefix_len);
+				}
+				char* dest = *reinterpret_cast<char**>(reinterpret_cast<std::uintptr_t>(_this) + 0x408);
+				char* suffix = strrchr(dest, '-');
+				int prefix_len = -1;
+				if (suffix != nullptr) {
+					prefix_len = suffix - dest;
+				}
+				std::uintptr_t result[10] = {};
+				void* ppvVar6 = (void*)FUN_0060ee20(reinterpret_cast<std::uintptr_t>(_this) + 0x408, &result, *reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x408) - 0xC) - (prefix_len + 1));
+				FUN_00613000(reinterpret_cast<std::uintptr_t>(_this) + 0x40C, ppvVar6);
+				FUN_005ff4a0(&result);
+				FUN_0060e7d0(reinterpret_cast<std::uintptr_t>(_this) + 0x408, prefix_len, *reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x408) - 0xC) - prefix_len);
+				FUN_00ef3a30(reinterpret_cast<std::uintptr_t>(_this) + 0x3E8);
+				_CarsFrontEnd_SetScreen(_this, CustomSquadSeries, "FE_MT_SquadSeries", false);
+			}
 			break;
 
 		case CustomSquadSeries:
-			logger::log_format("[CarsFrontEnd::OnConfirm] Menu transition from: {} unimplemented!", menu_state);
-			// TODO
+			{
+				int index = std::atoi(_selected_menu);
+				*(reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x46C)) = index;
+				GameProgressionManager_FUN_004ebab0(*g_GameProgressionManager, index);
+				_CarsFrontEnd_SetScreen(_this, MainMenu_CustomMissions2, nullptr, true);
+			}
 			break;
 
 		case MissionSettings_Unk2:
@@ -394,7 +432,7 @@ extern "C" void __stdcall Pentane_Main() {
 		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
 		CallFlashVariableFuncHook::install_at_ptr(0x010d6dc0);
 		CallFlashFunction::install_at_ptr(0x010dae50);
-		FlashControlMapper_ButtonPressedHook::install_at_ptr(0x010d6930);
+		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x010d6930);
 		CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
 		/* DEBUGGING HOOKS END */
 	}
