@@ -10,7 +10,7 @@ static std::atomic<bool> IS_PC = false;
 
 inline auto _CarsFrontEnd_SetScreen = (void(__thiscall*)(void*, int, char*, bool))(0x004c1440);
 inline auto _CarsFrontEnd_SetLevelAndUnk = (void(__thiscall*)(void*, void*))(0x004c0780);
-inline auto _CarsFrontEnd_UnkHandleTrackLengthType = (void(__thiscall*)(void*))(0x004c0800);
+inline auto _CarsFrontEnd_UnkHandleTrackLengthType = (void(__thiscall*)(void*, char*))(0x004c0800);
 inline auto _CarsFrontEnd_SetGameModeIndex = (void(__thiscall*)(void*, char*))(0x004c2dc0);
 inline auto Flash_Movie_CallFlashFunction = (void(__cdecl*)(std::uintptr_t, const char*, ...))(0x01168690);
 inline auto _CMessageDispatcher_SendMessageToAll = (void(__thiscall*)(void*, const char*, unsigned int, unsigned int))(0x00cef410);
@@ -197,6 +197,7 @@ DefineReplacementHook(OnConfirmHook) {
 
 		case MainMenu_StoryMissions:
 		{
+			if (selected_menu.size() > 15) {
 			char number = selected_menu[15];
 			if (number < '0' || number > '9') {
 				*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = 0;
@@ -205,6 +206,11 @@ DefineReplacementHook(OnConfirmHook) {
 				*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = number - '0';
 			}
 			_CarsFrontEnd_SetScreen(_this, MissionSelect, _selected_menu, true);
+		}
+			else {
+				*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = 0;
+				_CarsFrontEnd_SetScreen(_this, MissionSelect, _selected_menu, true);
+			}
 		}
 		break;
 
@@ -275,7 +281,7 @@ DefineReplacementHook(OnConfirmHook) {
 		case MT_Hunter2:
 			if (_selected_menu[0] == 'T') {
 				_CarsFrontEnd_SetLevelAndUnk(_this, _selected_menu);
-				_CarsFrontEnd_UnkHandleTrackLengthType(_this);
+				_CarsFrontEnd_UnkHandleTrackLengthType(_this, _selected_menu);
 			}
 			else {
 				_CarsFrontEnd_SetLevelAndUnk(_this, _selected_menu);
