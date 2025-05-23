@@ -258,7 +258,6 @@ DefineReplacementHook(OnConfirmHook) {
 				*reinterpret_cast<void**>(reinterpret_cast<std::uintptr_t>(_this) + 0xCC) = Flash_EngineTextureLoader_LoadTextureSet(engine_texture_loader, oct_name, false, 0);
 			}
 		}
-		should_set_screen = false;
 		break;
 
 		case BadgeMenu_Badges:
@@ -317,8 +316,9 @@ DefineReplacementHook(OnConfirmHook) {
 			break;
 
 		case GarageConnect:
-			logger::log_format("[CarsFrontEnd::OnConfirm] Menu transition from: {} unimplemented!", menu_state);
-			// TODO
+			if (_stricmp(_selected_menu, "DLC_Connect") == 0) {
+				*(reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x800)) = 1;
+			}
 			break;
 
 		case WorldOfCarsConnect:
