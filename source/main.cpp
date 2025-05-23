@@ -205,15 +205,15 @@ DefineReplacementHook(OnConfirmHook) {
 		case MainMenu_StoryMissions:
 		{
 			if (selected_menu.size() > 15) {
-			char number = selected_menu[15];
-			if (number < '0' || number > '9') {
-				*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = 0;
+				char number = selected_menu[15];
+				if (number < '0' || number > '9') {
+					*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = 0;
+				}
+				else {
+					*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = number - '0';
+				}
+				_CarsFrontEnd_SetScreen(_this, MissionSelect, _selected_menu, true);
 			}
-			else {
-				*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = number - '0';
-			}
-			_CarsFrontEnd_SetScreen(_this, MissionSelect, _selected_menu, true);
-		}
 			else {
 				*reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = 0;
 				_CarsFrontEnd_SetScreen(_this, MissionSelect, _selected_menu, true);
@@ -390,6 +390,58 @@ DefineReplacementHook(OnConfirmHook) {
 
 DefineReplacementHook(FlashControlMapper_ButtonPressedHook) {
 	static bool __fastcall callback(void* _this, uintptr_t edx, int button, bool ignore_focus) {
+		// QUICK HACK TO GET IT WORKING FOR MAXIMILIAN
+		if (button == 56) {
+			if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (button == 47) {
+			if (GetAsyncKeyState(VK_UP) & 0x8000) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (button == 48) {
+			if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (button == 49) {
+			if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else if (button == 50) {
+			if (GetAsyncKeyState(VK_RIGHT) & 0x8000) {
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+		else {
+			return original(_this, edx, button, ignore_focus);
+		}
+
+		/*
+		if (button == 47) {
+			return (GetAsyncKeyState(VK_UP) & 0x8000) != 0;
+		} else if (button == 48) {
+			return (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0;
+		}
+		
 		if (button == 56) {
 			auto pressed = original(_this, edx, 49, ignore_focus);
 			if (pressed)
@@ -400,6 +452,7 @@ DefineReplacementHook(FlashControlMapper_ButtonPressedHook) {
 		if (pressed)
 			logger::log_format("[Flash::FlashControlMapper::ButtonPressed] {}, {}", button, pressed);
 		return pressed;
+		*/
 	}
 };
 
