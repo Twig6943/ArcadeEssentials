@@ -8,6 +8,7 @@
 
 static std::atomic<bool> IS_PC = false;
 
+inline auto WindowsSystemInputDriver_LockPlayerToController = (void(__thiscall*)(std::uintptr_t, int, int))(0x00816dd0);
 inline auto FUN_00ef3a30 = (void(__thiscall*)(std::uintptr_t))(0x00ef3a30);
 inline auto FUN_0060e7d0 = (void(__thiscall*)(std::uintptr_t, int, int))(0x0060e7d0);
 inline auto FUN_0060ee20 = (void**(__thiscall*)(std::uintptr_t, void*, int))(0x0060ee20);
@@ -98,6 +99,7 @@ enum class ControllerButton {
 };
 
 inline std::uintptr_t* g_GameProgressionManager = reinterpret_cast<std::uintptr_t*>(0x018ae0f0);
+inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244);
 
 DefineInlineHook(SetInitialScreenState) {
 	static void __cdecl callback(sunset::InlineCtx & ctx) {
@@ -161,6 +163,8 @@ DefineReplacementHook(OnConfirmHook) {
 			break;
 
 		case TitleMenu:
+			// FIXME: PC does a whole lot more with the global input driver, that we do not.
+			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0);
 			// Turns off the Globe as the game transitions to the main menu.
 			_CMessageDispatcher_SendMessageToAll(*reinterpret_cast<void**>(0x01926ef0), "GlobeOff", 0, 0);
 			_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, true);
@@ -391,6 +395,7 @@ DefineReplacementHook(OnConfirmHook) {
 DefineReplacementHook(FlashControlMapper_ButtonPressedHook) {
 	static bool __fastcall callback(void* _this, uintptr_t edx, int button, bool ignore_focus) {
 		// QUICK HACK TO GET IT WORKING FOR MAXIMILIAN
+		/*
 		if (button == 56) {
 			if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
 				return true;
@@ -434,24 +439,35 @@ DefineReplacementHook(FlashControlMapper_ButtonPressedHook) {
 		else {
 			return original(_this, edx, button, ignore_focus);
 		}
-
+		*/
 		/*
-		if (button == 47) {
-			return (GetAsyncKeyState(VK_UP) & 0x8000) != 0;
-		} else if (button == 48) {
-			return (GetAsyncKeyState(VK_DOWN) & 0x8000) != 0;
+		if (button == 55) {
+			if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
+				return true;
+			}
+			else {
+				return false;
+			}
 		}
-		
-		if (button == 56) {
-			auto pressed = original(_this, edx, 49, ignore_focus);
-			if (pressed)
-				logger::log_format("[Flash::FlashControlMapper::ButtonPressed] Redirected Back to Left: {}", pressed);
-			return pressed;
-		}
+		*/
 		auto pressed = original(_this, edx, button, ignore_focus);
 		if (pressed)
 			logger::log_format("[Flash::FlashControlMapper::ButtonPressed] {}, {}", button, pressed);
 		return pressed;
+	}
+};
+
+DefineReplacementHook(SetButtonLayout) {
+	static void __fastcall callback(std::uintptr_t _this, std::uintptr_t edx, int scheme) {
+		logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Scheme: {}, ButtonCount: {}", scheme, *reinterpret_cast<int*>(_this + 0xA8));
+		original(_this, edx, scheme);
+		int* button_map = *reinterpret_cast<int**>(_this + 0xB0);
+		button_map[55] = 6;
+		/*
+		for (std::size_t i = 0; i < *reinterpret_cast<int*>(_this + 0xA8); i++) {
+			if (button_map[i] != 0)
+				logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Mapped FlashButton {} -> ControllerButton {}", i, button_map[i]);
+		}
 		*/
 	}
 };
@@ -460,6 +476,13 @@ DefineReplacementHook(CallFlashVariableFuncHook) {
 	static void __fastcall callback(void* _this, uintptr_t edx, struct Movie* movie, char* method, void* args) {
 		logger::log_format("[GameSpecificFlashImpl::CallFlashVariableFunc] {}", method);
 		original(_this, edx, movie, method, args);
+	}
+};
+
+DefineReplacementHook(ExternalInterfaceHandler_Callback) {
+	static void __fastcall callback(void* _this, uintptr_t edx, struct Movie* movie, char* method, void* args, unsigned int arg_count) {
+		logger::log_format("[Flash::Movie::ExternalInterfaceHandler::Callback] {}", method);
+		original(_this, edx, movie, method, args, arg_count);
 	}
 };
 
@@ -482,10 +505,10 @@ extern "C" void __stdcall Pentane_Main() {
 	if (IS_PC) {
 		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game...");
 		/* DEBUGGING HOOKS START */
-		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
-		CallFlashVariableFuncHook::install_at_ptr(0x010d6dc0);
-		CallFlashFunction::install_at_ptr(0x010dae50);
 		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x010d6930);
+		ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
+		CallFlashFunction::install_at_ptr(0x010dae50);
+		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
 		CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
 		/* DEBUGGING HOOKS END */
 	}
@@ -512,17 +535,32 @@ extern "C" void __stdcall Pentane_Main() {
 		RegisterGoBack::install_at_ptr(0x004c93e0);
 		// Implements the logic for transitioning from screen to screen.
 		OnConfirmHook::install_at_ptr(0x004be010);
+		// Forcibly maps the A/Cross button to 55, allowing menu navigation with A/Cross.
+		SetButtonLayout::install_at_ptr(0x01163f70);
 
 		/* DEBUGGING HOOKS START */
-		FlashControlMapper_ButtonPressedHook::install_at_ptr(0x01164250);
-		// CallFlashVariableFuncHook::install_at_ptr(0x01164670);
-		// CallFlashFunction::install_at_ptr(0x01168710);
+		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x01164250);
+		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
+		CallFlashFunction::install_at_ptr(0x01168710);
 		CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
 		CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
 		/* DEBUGGING HOOKS END */
 
-		// Patch CarsFrontEnd's size.
-		// sunset::inst::push_u32(reinterpret_cast<void*>(0x00554e8b), 0x8CC + sizeof(OptionFlashCallbacks));
+		// Redirects the game's WinArcadeInputDriver to the otherwise-unused WindowsSystemInputDriver (likely a leftover from the PC port).
+		sunset::inst::push_u32(reinterpret_cast<void*>(0x0080cf64), 0x500); // Patch argument to operator.new
+		sunset::inst::call(reinterpret_cast<void*>(0x0080cf8d), reinterpret_cast<void*>(0x00814fa0)); // Replace call to constructor
+		sunset::inst::call(reinterpret_cast<void*>(0x0080da31), reinterpret_cast<void*>(0x008156f0)); // Replace call to ::Initialize member function
+		// No-ops code that floods the logger with "dpad pressed" messages.
+		sunset::inst::nop(reinterpret_cast<void*>(0x00814a55), 0x3D);
+
+		// Stubs the function that otherwise triggers a a system reboot (What the actual fuck RT??)
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x00458680), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x00458680) = 0xC3;
+		// Disables AutoPilot
+		sunset::inst::nop(reinterpret_cast<void*>(0x004f3c67), 0x2A);
+		// Disables "System going down for Maintenance" message.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004530c9), 0xF);
+
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }
