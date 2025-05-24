@@ -100,6 +100,7 @@ enum class ControllerButton {
 
 inline std::uintptr_t* g_GameProgressionManager = reinterpret_cast<std::uintptr_t*>(0x018ae0f0);
 inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244);
+inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 
 DefineInlineHook(SetInitialScreenState) {
 	static void __cdecl callback(sunset::InlineCtx & ctx) {
@@ -168,7 +169,7 @@ DefineReplacementHook(OnConfirmHook) {
 			// Turns off the Globe as the game transitions to the main menu.
 			_CMessageDispatcher_SendMessageToAll(*reinterpret_cast<void**>(0x01926ef0), "GlobeOff", 0, 0);
 			_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, true);
-
+			*reinterpret_cast<bool*>(*g_PopupCallback + 0x10C) = true;
 			break;
 		case SaveSlots:
 			break;
@@ -493,6 +494,13 @@ DefineReplacementHook(CallFlashFunction) {
 	}
 };
 
+
+DefineReplacementHook(ToggleStateFlag) {
+	static void __fastcall callback(std::uintptr_t _this) {
+		*reinterpret_cast<bool*>(_this + 0x10C) = true;
+	}
+};
+
 extern "C" void __stdcall Pentane_Main() {
 	// FIXME: link against Pentane.lib properly instead of this bullshit!!!!
 	Pentane_LogUTF8 = reinterpret_cast<void(*)(PentaneCStringView*)>(GetProcAddress(GetModuleHandleA("Pentane.dll"), "Pentane_LogUTF8"));
@@ -560,6 +568,12 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::inst::nop(reinterpret_cast<void*>(0x004f3c67), 0x2A);
 		// Disables "System going down for Maintenance" message.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004530c9), 0xF);
+
+		// Fixes an issue where ending an event sent you to the attract menus.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004fe25d), 0x66);
+		sunset::inst::nop(reinterpret_cast<void*>(0x004fe2fa), 0x20);
+		// Allows the StorageStateMachine to bring the user back to race select after finishing an event.
+		ToggleStateFlag::install_at_ptr(0x00e9a5c0);
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
