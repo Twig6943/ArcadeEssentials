@@ -5,6 +5,7 @@
 #include <sunset.hpp>
 #include "pentane.hpp"
 #include "Game/GameSpecificFlashImpl.hpp"
+#include "Game/Genie/String.hpp"
 
 static std::atomic<bool> IS_PC = false;
 
@@ -13,15 +14,12 @@ inline auto FUN_00ef3a30 = (void(__thiscall*)(std::uintptr_t))(0x00ef3a30);
 inline auto FUN_0060e7d0 = (void(__thiscall*)(std::uintptr_t, int, int))(0x0060e7d0);
 inline auto FUN_0060ee20 = (void**(__thiscall*)(std::uintptr_t, void*, int))(0x0060ee20);
 inline auto FUN_00613000 = (void*(__thiscall*)(std::uintptr_t, void*))(0x00613000);
-inline auto FUN_005ff4a0 = (void(__thiscall*)(void*))(0x005ff4a0);
 inline auto _CarsFrontEnd_SetScreen = (void(__thiscall*)(void*, int, const char*, bool))(0x004c1440);
 inline auto _CarsFrontEnd_SetLevelAndUnk = (void(__thiscall*)(void*, void*))(0x004c0780);
 inline auto _CarsFrontEnd_UnkHandleTrackLengthType = (void(__thiscall*)(void*, char*))(0x004c0800);
 inline auto _CarsFrontEnd_SetGameModeIndex = (void(__thiscall*)(void*, char*))(0x004c2dc0);
 inline auto Flash_Movie_CallFlashFunction = (void(__cdecl*)(std::uintptr_t, const char*, ...))(0x01168690);
 inline auto _CMessageDispatcher_SendMessageToAll = (void(__thiscall*)(void*, const char*, unsigned int, unsigned int))(0x00cef410);
-inline auto Genie_String_Assign = (void(__thiscall*)(void*, const char*))(0x005ff4e0);
-inline auto GameSpecificFlashImpl_SetFlashVariableFunc = (void(__thiscall*)(class GameSpecificFlashImpl*, const char*, char, void*))(0x01164570);
 inline auto GameProgressionManager_GetSomethingWeDontKnow = (int(__thiscall*)(std::uintptr_t))(0x004ead80);
 inline auto GameProgressionManager_SetSomethingWeDontKnow = (void(__thiscall*)(std::uintptr_t, int))(0x004eadc0);
 inline auto GameProgressionManager_FUN_004e8400 = (void(__thiscall*)(std::uintptr_t, bool))(0x004e8400);
@@ -29,6 +27,10 @@ inline auto GameProgressionManager_FUN_004ebab0 = (void(__thiscall*)(std::uintpt
 inline auto GameProgressionManager_FUN_004ebaf0 = (void(__thiscall*)(std::uintptr_t, int))(0x004ebaf0);
 inline auto GameProgressionManager_FormatStoryMission = (char* (__thiscall*)(std::uintptr_t, int, int))(0x004eaf90);
 inline auto Flash_EngineTextureLoader_LoadTextureSet = (void* (__thiscall*)(void*, const char*, bool, int))(0x0116cd20);
+inline auto CTranslator_Translate = (char*(__thiscall*)(void*, void*, bool))(0x00cf6dd0);
+inline auto UnkExcelDataBase_GetUnk = (void(__thiscall*)(void*, void*, void*))(0x0052cd70);
+inline auto UnkExcelDataBase_GetUnk1 = (void(__thiscall*)(void*, void*, void*))(0x0052ce80);
+inline auto UnkExcelDataBase_GetUnk2 = (void(__thiscall*)(void*, void*, void*, float*, float*))(0x0052cfe0);
 
 enum CarsFrontEndScreen {
 	Invalid = 0,
@@ -145,7 +147,7 @@ DefineReplacementHook(RegisterGoBack) {
 };
 
 DefineReplacementHook(OnConfirmHook) {
-	static void __fastcall callback(void* _this, void* unk_value, char* _selected_menu) {
+	static void __fastcall callback(void* _this, std::uintptr_t edx, char* _selected_menu, std::uintptr_t unk_menu) {
 		std::string selected_menu = _selected_menu;
 		logger::log_format("[CarsFrontEnd::OnConfirm] {}", selected_menu);
 		*(reinterpret_cast<std::int32_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7CC)) += 1;
@@ -274,8 +276,45 @@ DefineReplacementHook(OnConfirmHook) {
 
 		case BadgeMenu_Badges:
 		case BadgeMenu_Crests:
-			logger::log_format("[CarsFrontEnd::OnConfirm] Menu transition from: {} unimplemented!", menu_state);
-			// TODO
+			{
+				char buffer[64] = {};
+				Genie::String badge_id{ _selected_menu };
+				Genie::String localization_label{};
+				Genie::String description_localization_label{};
+				Genie::String unk4{}; // No idea what this is, seems to contain the same contents as `description_localization_label`.
+				float unk5 = 0.0f;
+				float unk6 = 0.0f;
+				UnkExcelDataBase_GetUnk(*reinterpret_cast<void**>(0x018ae110), &badge_id, &localization_label);
+				UnkExcelDataBase_GetUnk1(*reinterpret_cast<void**>(0x018ae110), &badge_id, &description_localization_label);
+				UnkExcelDataBase_GetUnk2(*reinterpret_cast<void**>(0x018ae110), &badge_id, &unk4, &unk5, &unk6);
+				int local_94 = static_cast<int>(std::floor(static_cast<double>(unk5 * 10.0)));
+				int local_4c = static_cast<int>(std::fmod(static_cast<double>(local_94), 10.0));
+				if (unk5 < unk6) {
+					if (local_4c == 0) {
+						sprintf_s(buffer, "%d", static_cast<int>(unk5));
+					}
+					else {
+						float local_2a4 = unk5;
+						if (unk6 - unk5 <= 0.05) {
+							local_2a4 = unk6 - 0.06;
+						}
+						sprintf_s(buffer, "%.1f", local_2a4);
+					}
+				}
+				else {
+					sprintf_s(buffer, "%d", static_cast<int>(unk6));
+				}
+				char description[512] = {};
+				char* description_format = CTranslator_Translate(reinterpret_cast<void*>(0x0192674c), description_localization_label.data, true);
+				sprintf_s(description, description_format, static_cast<int>(unk6));
+				if (menu_state == BadgeMenu_Badges) {
+					unk6 = -1.0;
+				}
+				if (unk6 < unk5) {
+					unk5 = unk6;
+				}
+				Flash_Movie_CallFlashFunction(unk_menu, "SetBadgeInfo", 0, localization_label.data, description, static_cast<double>(unk5), static_cast<double>(unk6), buffer);
+			}
 			break;
 
 		case MainMenu_CustomMissions:
@@ -337,7 +376,7 @@ DefineReplacementHook(OnConfirmHook) {
 				std::uintptr_t result[10] = {};
 				void* ppvVar6 = (void*)FUN_0060ee20(reinterpret_cast<std::uintptr_t>(_this) + 0x408, &result, *reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x408) - 0xC) - (prefix_len + 1));
 				FUN_00613000(reinterpret_cast<std::uintptr_t>(_this) + 0x40C, ppvVar6);
-				FUN_005ff4a0(&result);
+				Genie_String_Destructor(&result);
 				FUN_0060e7d0(reinterpret_cast<std::uintptr_t>(_this) + 0x408, prefix_len, *reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x408) - 0xC) - prefix_len);
 				FUN_00ef3a30(reinterpret_cast<std::uintptr_t>(_this) + 0x3E8);
 				_CarsFrontEnd_SetScreen(_this, CustomSquadSeries, "FE_MT_SquadSeries", false);
@@ -493,7 +532,6 @@ DefineReplacementHook(CallFlashFunction) {
 		original(_this, edx, active_function, function_name, return_value, arg_list);
 	}
 };
-
 
 DefineReplacementHook(ToggleStateFlag) {
 	static void __fastcall callback(std::uintptr_t _this) {

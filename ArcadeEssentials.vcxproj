@@ -112,6 +112,7 @@
     <ClInclude Include="source\Game\CLinearHash.hpp" />
     <ClInclude Include="source\Game\DynamicArray.hpp" />
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp" />
+    <ClInclude Include="source\Game\Genie\String.hpp" />
     <ClInclude Include="source\Game\Kernel.hpp" />
     <ClInclude Include="source\Game\Renderer.hpp" />
     <ClInclude Include="source\Game\Types.hpp" />
