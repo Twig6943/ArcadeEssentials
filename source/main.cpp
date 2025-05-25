@@ -167,7 +167,8 @@ DefineReplacementHook(OnConfirmHook) {
 
 		case TitleMenu:
 			// FIXME: PC does a whole lot more with the global input driver, that we do not.
-			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0);
+			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0); // g_InputPtr->LockPlayerToController(0, 0);
+			*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0; // this->controller_index[0] = 0;
 			// Turns off the Globe as the game transitions to the main menu.
 			_CMessageDispatcher_SendMessageToAll(*reinterpret_cast<void**>(0x01926ef0), "GlobeOff", 0, 0);
 			_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, true);
@@ -535,7 +536,15 @@ DefineReplacementHook(CallFlashFunction) {
 
 DefineReplacementHook(ToggleStateFlag) {
 	static void __fastcall callback(std::uintptr_t _this) {
+		original(_this);
 		*reinterpret_cast<bool*>(_this + 0x10C) = true;
+	}
+};
+
+DefineReplacementHook(ToggleStateFlag2) {
+	static void __fastcall callback(std::uintptr_t _this) {
+		original(_this);
+		*reinterpret_cast<bool*>(_this + 0x10C) = false;
 	}
 };
 
@@ -612,6 +621,8 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::inst::nop(reinterpret_cast<void*>(0x004fe2fa), 0x20);
 		// Allows the StorageStateMachine to bring the user back to race select after finishing an event.
 		ToggleStateFlag::install_at_ptr(0x00e9a5c0);
+		// I'll be honest, I have no idea what this does. Hopefully it fixes something!
+		ToggleStateFlag2::install_at_ptr(0x00e9a770);
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
