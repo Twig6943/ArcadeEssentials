@@ -45,13 +45,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <OutDir>C:\Projects\OctaneEngine\Cars 2 Arcade\carscade\Pentane\Plugins</OutDir>
+    <OutDir>C:\Projects\OctaneEngine\C2A\Pentane\Plugins</OutDir>
     <TargetName>$(ProjectName)</TargetName>
     <TargetExt>.dll</TargetExt>
     <IncludePath>.\dependencies\sunset\cpp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <OutDir>C:\Projects\OctaneEngine\Cars 2 Arcade\carscade\Pentane\Plugins</OutDir>
+    <OutDir>C:\Projects\OctaneEngine\C2A\Pentane\Plugins</OutDir>
     <TargetName>$(ProjectName)</TargetName>
     <TargetExt>.dll</TargetExt>
     <IncludePath>.\dependencies\sunset\cpp;$(IncludePath)</IncludePath>
@@ -81,6 +81,9 @@
       <GenerateMapFile>true</GenerateMapFile>
       <AdditionalDependencies>Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "C:\Projects\OctaneEngine\C2A\Pentane\Plugins\ArcadeEssentials.dll" "C:\Projects\OctaneEngine\Cars2PC-Allinol\Pentane\Plugins\ArcadeEssentials.dll*" /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -101,6 +104,9 @@
       <ModuleDefinitionFile>plugin.def</ModuleDefinitionFile>
       <AdditionalDependencies>Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy "C:\Projects\OctaneEngine\C2A\Pentane\Plugins\ArcadeEssentials.dll" "C:\Projects\OctaneEngine\Cars2PC-Allinol\Pentane\Plugins\ArcadeEssentials.dll*" /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="dependencies\sunset\cpp\sunset.cpp" />

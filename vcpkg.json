@@ -1,6 +1,7 @@
 {
-	"dependencies": [
-		"zydis",
-		"detours"
-	]
+  "dependencies": [
+    "zydis",
+    "detours"
+  ],
+  "builtin-baseline": "7354f1c8a0a276072e8d73d7eb6df6ca0ce8ccb1"
 }

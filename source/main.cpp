@@ -563,14 +563,17 @@ DefineReplacementHook(ToggleStateFlag2) {
 	}
 };
 
+constexpr auto W = 3840;
+constexpr auto H = 2160;
+
 DefineInlineHook(ChangeSwapChainDesc) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x80) = 1920;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x84) = 1080;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xB8) = 1920;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xBC) = 1080;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF8) = 1920;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF4) = 1080;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x80) = W;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x84) = H;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xB8) = W;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xBC) = H;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF4) = W;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF8) = H;
 	}
 };
 
