@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include <shlwapi.h>
 #include <sunset.hpp>
+#include <d3d9.h>
 #include "pentane.hpp"
 #include "Game/GameSpecificFlashImpl.hpp"
 #include "Game/Genie/String.hpp"
@@ -10,6 +11,7 @@
 static std::atomic<bool> IS_PC = false;
 
 inline auto WindowsSystemInputDriver_LockPlayerToController = (void(__thiscall*)(std::uintptr_t, int, int))(0x00816dd0);
+inline auto WindowsSystemInputDriver_IsControllerLocked = (bool(__thiscall*)(std::uintptr_t, int))(0x00816ed0);
 inline auto FUN_00ef3a30 = (void(__thiscall*)(std::uintptr_t))(0x00ef3a30);
 inline auto FUN_0060e7d0 = (void(__thiscall*)(std::uintptr_t, int, int))(0x0060e7d0);
 inline auto FUN_0060ee20 = (void**(__thiscall*)(std::uintptr_t, void*, int))(0x0060ee20);
@@ -31,6 +33,7 @@ inline auto CTranslator_Translate = (char*(__thiscall*)(void*, void*, bool))(0x0
 inline auto UnkExcelDataBase_GetUnk = (void(__thiscall*)(void*, void*, void*))(0x0052cd70);
 inline auto UnkExcelDataBase_GetUnk1 = (void(__thiscall*)(void*, void*, void*))(0x0052ce80);
 inline auto UnkExcelDataBase_GetUnk2 = (void(__thiscall*)(void*, void*, void*, float*, float*))(0x0052cfe0);
+inline auto PersistentData_SetGlobal = (void(__thiscall*)(void*, const char*, std::uint32_t))(0x00cf0e40);
 
 enum CarsFrontEndScreen {
 	Invalid = 0,
@@ -103,6 +106,7 @@ enum class ControllerButton {
 inline std::uintptr_t* g_GameProgressionManager = reinterpret_cast<std::uintptr_t*>(0x018ae0f0);
 inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244);
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
+inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
 
 DefineInlineHook(SetInitialScreenState) {
 	static void __cdecl callback(sunset::InlineCtx & ctx) {
@@ -426,7 +430,18 @@ DefineReplacementHook(OnConfirmHook) {
 			break;
 		}
 		if (should_set_screen) {
-			_CarsFrontEnd_SetScreen(_this, CarSelect, nullptr, true);
+			/*
+			int locked_controllers = 0;
+			for (std::size_t i = 0; i < 11; i++) {
+				if (WindowsSystemInputDriver_IsControllerLocked(*g_InputPtr, i)) {
+					locked_controllers += 1;
+				}
+			}
+			PersistentData_SetGlobal(*g_PersistentData, "NumPlayers", locked_controllers);
+			PersistentData_SetGlobal(*g_PersistentData, "MultiPlayer", locked_controllers > 1);
+			PersistentData_SetGlobal(*g_PersistentData, "ScreenFormat", locked_controllers > 4 ? 1 : locked_controllers);
+			*/
+ 			_CarsFrontEnd_SetScreen(_this, CarSelect, nullptr, true);
 		}
 		return;
 
@@ -548,6 +563,17 @@ DefineReplacementHook(ToggleStateFlag2) {
 	}
 };
 
+DefineInlineHook(ChangeSwapChainDesc) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x80) = 1920;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x84) = 1080;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xB8) = 1920;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xBC) = 1080;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF8) = 1920;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF4) = 1080;
+	}
+};
+
 extern "C" void __stdcall Pentane_Main() {
 	// FIXME: link against Pentane.lib properly instead of this bullshit!!!!
 	Pentane_LogUTF8 = reinterpret_cast<void(*)(PentaneCStringView*)>(GetProcAddress(GetModuleHandleA("Pentane.dll"), "Pentane_LogUTF8"));
@@ -623,7 +649,12 @@ extern "C" void __stdcall Pentane_Main() {
 		ToggleStateFlag::install_at_ptr(0x00e9a5c0);
 		// I'll be honest, I have no idea what this does. Hopefully it fixes something!
 		ToggleStateFlag2::install_at_ptr(0x00e9a770);
+		
+		// Prevents the QR code image from being generated.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x00466000), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint32_t*>(0x00466000) = 0x00000CC2;
 
+		ChangeSwapChainDesc::install_at_ptr(0x0083425d);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }
