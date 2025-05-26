@@ -33,6 +33,7 @@ inline auto CTranslator_Translate = (char*(__thiscall*)(void*, void*, bool))(0x0
 inline auto UnkExcelDataBase_GetUnk = (void(__thiscall*)(void*, void*, void*))(0x0052cd70);
 inline auto UnkExcelDataBase_GetUnk1 = (void(__thiscall*)(void*, void*, void*))(0x0052ce80);
 inline auto UnkExcelDataBase_GetUnk2 = (void(__thiscall*)(void*, void*, void*, float*, float*))(0x0052cfe0);
+inline auto PersistentData_GetGlobal = (int(__thiscall*)(void*, const char*))(0x00cf0e20);
 inline auto PersistentData_SetGlobal = (void(__thiscall*)(void*, const char*, std::uint32_t))(0x00cf0e40);
 
 enum CarsFrontEndScreen {
@@ -625,6 +626,29 @@ DefineReplacementHook(GameCommonLoop_PauseMessage_HandleMessage) {
 	}
 };
 
+void __fastcall InterceptSetAutoManDrift(void* data, std::uintptr_t edx, const char* name, std::uint32_t default_value) {
+	int value = PersistentData_GetGlobal(data, name);
+	PersistentData_SetGlobal(data, name, (value == 1) ? 0 : 1);
+}
+
+DefineInlineHook(SetAutoManDriftLocalVarFix) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		if (*reinterpret_cast<bool*>(ctx.ebp.unsigned_integer - 0x21)) {
+			ctx.edx.unsigned_integer = PersistentData_GetGlobal(*g_PersistentData, reinterpret_cast<const char*>(ctx.ebp.unsigned_integer - 0x6C));
+		}
+	}
+};
+
+DefineInlineHook(GetAutoManDriftFix) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		const char* label = reinterpret_cast<const char*>(ctx.ebp.unsigned_integer - 0x6C);
+		if (_strnicmp(label, "AutoDrift_", 10) == 0) {
+			int value = PersistentData_GetGlobal(*g_PersistentData, label);
+			*reinterpret_cast<std::uint8_t*>(ctx.ebp.unsigned_integer - 0x22) = value;
+		}
+	}
+};
+
 // #define VANILLA_ARCADE 1
 
 extern "C" void __stdcall Pentane_Main() {
@@ -725,6 +749,13 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Allows the pause/unpause messages to properly propogate through the message dispatcher.
 		GameCommonLoop_PauseMessage_HandleMessage::install_at_ptr(0x00eb66d0);
+
+		// Forces the AutoDrift_ PersistentData globals to toggle between 1 and 0 instead of being forced to 1 no matter what.
+		sunset::inst::call(reinterpret_cast<void*>(0x004cd3e6), InterceptSetAutoManDrift);
+		// Updates a local variable with the last set PersistentData value for AutoDrift_.
+		SetAutoManDriftLocalVarFix::install_at_ptr(0x004cd3fc);
+		// Fixes an issue where the UI doesn't update until the second X press.
+		GetAutoManDriftFix::install_at_ptr(0x004cd4f7);
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
