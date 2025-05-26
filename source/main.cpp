@@ -563,8 +563,8 @@ DefineReplacementHook(ToggleStateFlag2) {
 	}
 };
 
-constexpr auto W = 1920;
-constexpr auto H = 1080;
+constexpr auto W = 3840;
+constexpr auto H = 2160;
 
 DefineInlineHook(ChangeSwapChainDesc) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
@@ -588,6 +588,43 @@ DefineInlineHook(ForceInitializeLocalPlayerOnFirstTick) {
 	}
 };
 
+DefineReplacementHook(ShouldPauseHook) {
+	static bool _cdecl callback() {
+		return *reinterpret_cast<bool*>(0x018743e0);
+	}
+};
+
+DefineReplacementHook(SetPauseFlag0) {
+	static void _fastcall callback(void* _this, std::uintptr_t edx, std::uintptr_t unk) {
+		*reinterpret_cast<bool*>(0x018743e0) = false;
+		original(_this, edx, unk);
+	}
+};
+
+DefineReplacementHook(SetPauseFlag1) {
+	static void _fastcall callback(void* _this) {
+		*reinterpret_cast<bool*>(0x018743e0) = true;
+		original(_this);
+	}
+};
+
+DefineReplacementHook(GameCommonLoop_PauseMessage_HandleMessage) {
+	static void __fastcall callback(std::uintptr_t _this, std::uintptr_t edx, int* data, std::uint32_t actor_handle, std::uint32_t posted) {
+		if (*data != 1 && *data != 2) {
+			if (*data == 3) {
+				std::uintptr_t* inst = *reinterpret_cast<std::uintptr_t**>(_this + 0x14);
+				auto func = *reinterpret_cast<void(__thiscall**)(void*, void*)>(*inst + 0x44);
+				func(inst, data);
+			}
+			else {
+				std::uintptr_t* inst = *reinterpret_cast<std::uintptr_t**>(_this + 0x14);
+				auto func = *reinterpret_cast<void(__thiscall**)(void*, void*)>(*inst + 0x4C);
+				func(inst, data);
+			}
+		}
+	}
+};
+
 // #define VANILLA_ARCADE 1
 
 extern "C" void __stdcall Pentane_Main() {
@@ -600,7 +637,7 @@ extern "C" void __stdcall Pentane_Main() {
 		IS_PC = true;
 	}
 	if (IS_PC) {
-		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game...");
+		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game (PC)...");
 		/* DEBUGGING HOOKS START */
 		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x010d6930);
 		ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
@@ -678,6 +715,17 @@ extern "C" void __stdcall Pentane_Main() {
 		// Force initialize the local player struct on the first call to ArcadeManager::UpdateFrontEnd by setting a local variable to 1.
 		// As this expects the first tick to send the player straight to the title screen, this approach will NOT work if attract videos are re-enabled.
 		ForceInitializeLocalPlayerOnFirstTick::install_at_ptr(0x0045218b);
+
+		// Instead of reading from the pause global variable like PC does, Arcade instead... checks the lower bits of g_Game???
+		// Whatever, this fixes that.
+		ShouldPauseHook::install_at_ptr(0x00ecade0);
+		// Patches two functions to properly update the pause flag.
+		SetPauseFlag0::install_at_ptr(0x00551ab0);
+		SetPauseFlag1::install_at_ptr(0x004fd0b0);
+
+		// Allows the pause/unpause messages to properly propogate through the message dispatcher.
+		GameCommonLoop_PauseMessage_HandleMessage::install_at_ptr(0x00eb66d0);
+
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }
