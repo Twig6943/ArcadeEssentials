@@ -20,6 +20,7 @@ inline auto _CarsFrontEnd_SetScreen = (void(__thiscall*)(void*, int, const char*
 inline auto _CarsFrontEnd_SetLevelAndUnk = (void(__thiscall*)(void*, void*))(0x004c0780);
 inline auto _CarsFrontEnd_UnkHandleTrackLengthType = (void(__thiscall*)(void*, char*))(0x004c0800);
 inline auto _CarsFrontEnd_SetGameModeIndex = (void(__thiscall*)(void*, char*))(0x004c2dc0);
+inline auto _CarsFrontEnd_UNK_004c3b70 = (void(__thiscall*)(void*))(0x004c3b70);
 inline auto Flash_Movie_CallFlashFunction = (void(__cdecl*)(std::uintptr_t, const char*, ...))(0x01168690);
 inline auto _CMessageDispatcher_SendMessageToAll = (void(__thiscall*)(void*, const char*, unsigned int, unsigned int))(0x00cef410);
 inline auto GameProgressionManager_GetSomethingWeDontKnow = (int(__thiscall*)(std::uintptr_t))(0x004ead80);
@@ -33,8 +34,11 @@ inline auto CTranslator_Translate = (char*(__thiscall*)(void*, void*, bool))(0x0
 inline auto UnkExcelDataBase_GetUnk = (void(__thiscall*)(void*, void*, void*))(0x0052cd70);
 inline auto UnkExcelDataBase_GetUnk1 = (void(__thiscall*)(void*, void*, void*))(0x0052ce80);
 inline auto UnkExcelDataBase_GetUnk2 = (void(__thiscall*)(void*, void*, void*, float*, float*))(0x0052cfe0);
+inline auto UnkExcelDataBase_GetUnk3 = (void(__thiscall*)(void*, std::uint32_t, void*, void*))(0x0052af10);
 inline auto PersistentData_GetGlobal = (int(__thiscall*)(void*, const char*))(0x00cf0e20);
 inline auto PersistentData_SetGlobal = (void(__thiscall*)(void*, const char*, std::uint32_t))(0x00cf0e40);
+inline auto FUN_00f675d0 = (std::uint32_t(__thiscall*)(void*, const char*, std::uint32_t))(0x00f675d0);
+inline auto FUN_00f66d60 = (std::uint32_t(__thiscall*)(void*, std::uint32_t))(0x00f66d60);
 
 enum CarsFrontEndScreen {
 	Invalid = 0,
@@ -42,7 +46,7 @@ enum CarsFrontEndScreen {
 	AutoSaveWarning = 2,
 	TitleMenu = 3,
 	UnkSubMenuGears = 4, // FIXME
-	UnkMenuEmpty = 5, // FIXME
+	SaveFileLoading = 5, // FIXME
 	SaveSlots = 6, // Causes a game crash!
 	MainMenu_Extras = 7,
 	Extras_Options = 8,
@@ -109,6 +113,33 @@ inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
 
+void __fastcall InitClearanceLevelData(std::uintptr_t unk) {
+	auto iVar2 = FUN_00f675d0(*reinterpret_cast<void**>(0x0192c5ec), "Stat_SPY_POINTS", 1);
+	auto local_c = FUN_00f66d60(*reinterpret_cast<void**>(0x0192c5ec), iVar2);
+	iVar2 = FUN_00f675d0(*reinterpret_cast<void**>(0x0192c5ec), "Stat_CLEARANCE_LEVEL", 1);
+	auto local_8 = FUN_00f66d60(*reinterpret_cast<void**>(0x0192c5ec), iVar2);
+
+	int local_14 = 0, local_18 = 0;
+	UnkExcelDataBase_GetUnk3(*reinterpret_cast<void**>(0x018ae110), local_8, &local_14, &local_18);
+	float local_10 = static_cast<float>(local_c - local_14) / static_cast<float>(local_18 - local_14);
+	if (0.0 <= local_10) {
+		if (1.0 < local_10) {
+			local_10 = 1.0;
+		}
+	}
+	else {
+		local_10 = 0.0;
+	}
+	if (static_cast<int>(local_8) < 0) {
+		local_8 = 0;
+	}
+	else if (6 < static_cast<int>(local_8)) {
+		local_8 = 6;
+	}
+
+	Flash_Movie_CallFlashFunction(*reinterpret_cast<std::uintptr_t*>(unk), "SetClearanceLevelData", 0, static_cast<double>(static_cast<int>(local_8)), static_cast<double>(local_10), static_cast<double>(local_c));
+}
+
 DefineInlineHook(SetInitialScreenState) {
 	static void __cdecl callback(sunset::InlineCtx & ctx) {
 		void* _this = *reinterpret_cast<void**>(ctx.ebp.unsigned_integer - 0x194);
@@ -173,10 +204,11 @@ DefineReplacementHook(OnConfirmHook) {
 		case TitleMenu:
 			// FIXME: PC does a whole lot more with the global input driver, that we do not.
 			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0); // g_InputPtr->LockPlayerToController(0, 0);
+			// WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 1, 1); // g_InputPtr->LockPlayerToController(1, 1);
 			*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0; // this->controller_index[0] = 0;
 			// Turns off the Globe as the game transitions to the main menu.
 			_CMessageDispatcher_SendMessageToAll(*reinterpret_cast<void**>(0x01926ef0), "GlobeOff", 0, 0);
-			_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, true);
+			_CarsFrontEnd_SetScreen(_this, SaveFileLoading, nullptr, true);
 			*reinterpret_cast<bool*>(*g_PopupCallback + 0x10C) = true;
 			break;
 		case SaveSlots:
@@ -212,6 +244,9 @@ DefineReplacementHook(OnConfirmHook) {
 			}
 			else if (selected_menu == "FE_MM_Extras") {
 				_CarsFrontEnd_SetScreen(_this, MainMenu_Extras, _selected_menu, true);
+			}
+			if (*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xE4) != 0) {
+				InitClearanceLevelData(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xE4));
 			}
 			break;
 
@@ -649,6 +684,14 @@ DefineInlineHook(GetAutoManDriftFix) {
 	}
 };
 
+DefineInlineHook(OnSaveLoaded) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		void* _this = *reinterpret_cast<void**>(ctx.ebp.unsigned_integer - 0x28);
+		_CarsFrontEnd_UNK_004c3b70(_this);
+		_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
+	}
+};
+
 // #define VANILLA_ARCADE 1
 
 extern "C" void __stdcall Pentane_Main() {
@@ -692,8 +735,11 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Registers the otherwise-missing `GoBack` callback inside CarsFrontEndFlashCallbacks::FrontendFlashFunctions::SetupFlashFunctions.
 		RegisterGoBack::install_at_ptr(0x004c93e0);
-		// Implements the logic for transitioning from screen to screen.
+		// Implements most of the logic for transitioning from screen to screen.
 		OnConfirmHook::install_at_ptr(0x004be010);
+		// Allows the game to transition from SaveFileLoading to MT_FrontEnd.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004c3b33), 0x33);
+		OnSaveLoaded::install_at_ptr(0x004c3b33);
 		// Forcibly maps the A/Cross button to 55, allowing menu navigation with A/Cross.
 		SetButtonLayout::install_at_ptr(0x01163f70);
 #endif
@@ -756,6 +802,9 @@ extern "C" void __stdcall Pentane_Main() {
 		SetAutoManDriftLocalVarFix::install_at_ptr(0x004cd3fc);
 		// Fixes an issue where the UI doesn't update until the second X press.
 		GetAutoManDriftFix::install_at_ptr(0x004cd4f7);
+
+		// Un-stubs the function responsible for initializing the clearance level data and passing it over to Flash.
+		sunset::inst::jmp(reinterpret_cast<void*>(0x004b8790), InitClearanceLevelData);
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
