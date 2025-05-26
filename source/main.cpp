@@ -563,8 +563,8 @@ DefineReplacementHook(ToggleStateFlag2) {
 	}
 };
 
-constexpr auto W = 3840;
-constexpr auto H = 2160;
+constexpr auto W = 1920;
+constexpr auto H = 1080;
 
 DefineInlineHook(ChangeSwapChainDesc) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
@@ -576,6 +576,19 @@ DefineInlineHook(ChangeSwapChainDesc) {
 		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF8) = H;
 	}
 };
+
+
+std::atomic<bool> FIRST_TICK = true;
+DefineInlineHook(ForceInitializeLocalPlayerOnFirstTick) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		if (FIRST_TICK) {
+			*reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x10) = 1;
+			FIRST_TICK = false;
+		}
+	}
+};
+
+// #define VANILLA_ARCADE 1
 
 extern "C" void __stdcall Pentane_Main() {
 	// FIXME: link against Pentane.lib properly instead of this bullshit!!!!
@@ -597,6 +610,7 @@ extern "C" void __stdcall Pentane_Main() {
 		/* DEBUGGING HOOKS END */
 	}
 	else {
+#ifndef VANILLA_ARCADE
 		// Set's ArcadeManager's initial VideoState to 16 (GAME_START), in order to force the game to skip all intro cutscenes.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x004512ad), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<char*>(0x004512ad) = 16;
@@ -621,6 +635,7 @@ extern "C" void __stdcall Pentane_Main() {
 		OnConfirmHook::install_at_ptr(0x004be010);
 		// Forcibly maps the A/Cross button to 55, allowing menu navigation with A/Cross.
 		SetButtonLayout::install_at_ptr(0x01163f70);
+#endif
 
 		/* DEBUGGING HOOKS START */
 		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x01164250);
@@ -629,14 +644,14 @@ extern "C" void __stdcall Pentane_Main() {
 		CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
 		CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
 		/* DEBUGGING HOOKS END */
-
+#ifndef VANILLA_ARCADE
 		// Redirects the game's WinArcadeInputDriver to the otherwise-unused WindowsSystemInputDriver (likely a leftover from the PC port).
 		sunset::inst::push_u32(reinterpret_cast<void*>(0x0080cf64), 0x500); // Patch argument to operator.new
 		sunset::inst::call(reinterpret_cast<void*>(0x0080cf8d), reinterpret_cast<void*>(0x00814fa0)); // Replace call to constructor
 		sunset::inst::call(reinterpret_cast<void*>(0x0080da31), reinterpret_cast<void*>(0x008156f0)); // Replace call to ::Initialize member function
 		// No-ops code that floods the logger with "dpad pressed" messages.
 		sunset::inst::nop(reinterpret_cast<void*>(0x00814a55), 0x3D);
-
+#endif
 		// Stubs the function that otherwise triggers a a system reboot (What the actual fuck RT??)
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00458680), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x00458680) = 0xC3;
@@ -645,6 +660,7 @@ extern "C" void __stdcall Pentane_Main() {
 		// Disables "System going down for Maintenance" message.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004530c9), 0xF);
 
+#ifndef VANILLA_ARCADE
 		// Fixes an issue where ending an event sent you to the attract menus.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004fe25d), 0x66);
 		sunset::inst::nop(reinterpret_cast<void*>(0x004fe2fa), 0x20);
@@ -652,12 +668,16 @@ extern "C" void __stdcall Pentane_Main() {
 		ToggleStateFlag::install_at_ptr(0x00e9a5c0);
 		// I'll be honest, I have no idea what this does. Hopefully it fixes something!
 		ToggleStateFlag2::install_at_ptr(0x00e9a770);
-		
+#endif
 		// Prevents the QR code image from being generated.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00466000), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint32_t*>(0x00466000) = 0x00000CC2;
-
+		
 		ChangeSwapChainDesc::install_at_ptr(0x0083425d);
+
+		// Force initialize the local player struct on the first call to ArcadeManager::UpdateFrontEnd by setting a local variable to 1.
+		// As this expects the first tick to send the player straight to the title screen, this approach will NOT work if attract videos are re-enabled.
+		ForceInitializeLocalPlayerOnFirstTick::install_at_ptr(0x0045218b);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }
