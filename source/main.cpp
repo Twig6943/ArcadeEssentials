@@ -696,12 +696,22 @@ DefineInlineHook(OnSaveLoaded) {
 	}
 };
 
+struct ArcadeSetting {
+	unsigned int type;
+	int value;
+	char string_value[80];
+	unsigned int value_offset;
+	bool initialized;
+	char* key;
+};
+
+static_assert(sizeof(ArcadeSetting) == 0x64);
+
 DefineInlineHook(OverrideVolumeConfig) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
-		// arcade_data->save_settings[0x15].value = 10;
-		// arcade_data->save_settings[0x16].value = 10;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xA84 + 0x64 * 0x15) = 10;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xA84 + 0x64 * 0x16) = 10;
+		ArcadeSetting* settings = reinterpret_cast<ArcadeSetting*>(ctx.eax.unsigned_integer + 0xA80);
+		settings[0x15].value = 10;
+		settings[0x16].value = 10;
 	}
 };
 
@@ -821,10 +831,10 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// NOTE: This might cause unintended side effects.
 		// Sets the default values for both volumes to the maximum.
-		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3D0), 1, sunset::utils::Perm::ExecuteReadWrite);
-		*reinterpret_cast<std::uint8_t*>(0x0045B3D0) = 10;
-		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3EA), 1, sunset::utils::Perm::ExecuteReadWrite);
-		*reinterpret_cast<std::uint8_t*>(0x0045B3EA) = 10;
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3CE), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x0045B3CE) = 10;
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3E8), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x0045B3E8) = 10;
 		// Overrides the volume values read from the save files with the maximum values.
 		OverrideVolumeConfig::install_at_ptr(0x00450791);
 
