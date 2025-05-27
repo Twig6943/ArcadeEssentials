@@ -39,6 +39,9 @@ inline auto PersistentData_GetGlobal = (int(__thiscall*)(void*, const char*))(0x
 inline auto PersistentData_SetGlobal = (void(__thiscall*)(void*, const char*, std::uint32_t))(0x00cf0e40);
 inline auto FUN_00f675d0 = (std::uint32_t(__thiscall*)(void*, const char*, std::uint32_t))(0x00f675d0);
 inline auto FUN_00f66d60 = (std::uint32_t(__thiscall*)(void*, std::uint32_t))(0x00f66d60);
+inline auto GameCommon_SetPlayerSfxVolume = (void(__thiscall*)(void*, float, char))(0x00eb48b0);
+inline auto GameCommon_SetPlayerMusicVolume = (void(__thiscall*)(void*, float, char))(0x00eb49a0);
+inline auto GameCommon_SetPlayerDialogueVolume = (void(__thiscall*)(void*, float, char))(0x00eb4a90);
 
 enum CarsFrontEndScreen {
 	Invalid = 0,
@@ -112,6 +115,7 @@ inline std::uintptr_t* g_GameProgressionManager = reinterpret_cast<std::uintptr_
 inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244);
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
+inline void** g_Game = reinterpret_cast<void**>(0x01929bfc);
 
 void __fastcall InitClearanceLevelData(std::uintptr_t unk) {
 	auto iVar2 = FUN_00f675d0(*reinterpret_cast<void**>(0x0192c5ec), "Stat_SPY_POINTS", 1);
@@ -692,6 +696,15 @@ DefineInlineHook(OnSaveLoaded) {
 	}
 };
 
+DefineInlineHook(OverrideVolumeConfig) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		// arcade_data->save_settings[0x15].value = 10;
+		// arcade_data->save_settings[0x16].value = 10;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xA84 + 0x64 * 0x15) = 10;
+		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xA84 + 0x64 * 0x16) = 10;
+	}
+};
+
 // #define VANILLA_ARCADE 1
 
 extern "C" void __stdcall Pentane_Main() {
@@ -805,6 +818,15 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Un-stubs the function responsible for initializing the clearance level data and passing it over to Flash.
 		sunset::inst::jmp(reinterpret_cast<void*>(0x004b8790), InitClearanceLevelData);
+
+		// NOTE: This might cause unintended side effects.
+		// Sets the default values for both volumes to the maximum.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3D0), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x0045B3D0) = 10;
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3EA), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x0045B3EA) = 10;
+		// Overrides the volume values read from the save files with the maximum values.
+		OverrideVolumeConfig::install_at_ptr(0x00450791);
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
