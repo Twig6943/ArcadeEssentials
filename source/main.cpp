@@ -487,71 +487,6 @@ DefineReplacementHook(OnConfirmHook) {
 	}
 };
 
-DefineReplacementHook(FlashControlMapper_ButtonPressedHook) {
-	static bool __fastcall callback(void* _this, uintptr_t edx, int button, bool ignore_focus) {
-		// QUICK HACK TO GET IT WORKING FOR MAXIMILIAN
-		/*
-		if (button == 56) {
-			if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		else if (button == 47) {
-			if (GetAsyncKeyState(VK_UP) & 0x8000) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		else if (button == 48) {
-			if (GetAsyncKeyState(VK_DOWN) & 0x8000) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		else if (button == 49) {
-			if (GetAsyncKeyState(VK_LEFT) & 0x8000) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		else if (button == 50) {
-			if (GetAsyncKeyState(VK_RIGHT) & 0x8000) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		else {
-			return original(_this, edx, button, ignore_focus);
-		}
-		*/
-		/*
-		if (button == 55) {
-			if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
-				return true;
-			}
-			else {
-				return false;
-			}
-		}
-		*/
-		auto pressed = original(_this, edx, button, ignore_focus);
-		if (pressed)
-			logger::log_format("[Flash::FlashControlMapper::ButtonPressed] {}, {}", button, pressed);
-		return pressed;
-	}
-};
-
 DefineReplacementHook(SetButtonLayout) {
 	static void __fastcall callback(std::uintptr_t _this, std::uintptr_t edx, int scheme) {
 		logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Scheme: {}, ButtonCount: {}", scheme, *reinterpret_cast<int*>(_this + 0xA8));
@@ -723,8 +658,6 @@ DefineInlineHook(FixRestartVolume) {
 	}
 };
 
-// #define VANILLA_ARCADE 1
-
 extern "C" void __stdcall Pentane_Main() {
 	/*
 	unsigned long computer_name_len = 1024;
@@ -746,7 +679,6 @@ extern "C" void __stdcall Pentane_Main() {
 	if (IS_PC) {
 		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game (PC)...");
 		/* DEBUGGING HOOKS START */
-		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x010d6930);
 		ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
 		CallFlashFunction::install_at_ptr(0x010dae50);
 		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
@@ -754,7 +686,13 @@ extern "C" void __stdcall Pentane_Main() {
 		/* DEBUGGING HOOKS END */
 	}
 	else {
-#ifndef VANILLA_ARCADE
+		/* DEBUGGING HOOKS START */
+		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
+		CallFlashFunction::install_at_ptr(0x01168710);
+		CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
+		CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
+		/* DEBUGGING HOOKS END */
+
 		// Set's ArcadeManager's initial VideoState to 16 (GAME_START), in order to force the game to skip all intro cutscenes.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x004512ad), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<char*>(0x004512ad) = 16;
@@ -775,39 +713,35 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Registers the otherwise-missing `GoBack` callback inside CarsFrontEndFlashCallbacks::FrontendFlashFunctions::SetupFlashFunctions.
 		RegisterGoBack::install_at_ptr(0x004c93e0);
+		
 		// Implements most of the logic for transitioning from screen to screen.
 		OnConfirmHook::install_at_ptr(0x004be010);
-		// Allows the game to transition from SaveFileLoading to MT_FrontEnd.
+		
+		// Allows the game to transition from SaveFileLoading to MT_FrontEnd, as well as reset the volume to the user-configured values.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004c3b33), 0x33);
 		OnSaveLoaded::install_at_ptr(0x004c3b33);
+		
 		// Forcibly maps the A/Cross button to 55, allowing menu navigation with A/Cross.
 		SetButtonLayout::install_at_ptr(0x01163f70);
-#endif
 
-		/* DEBUGGING HOOKS START */
-		// FlashControlMapper_ButtonPressedHook::install_at_ptr(0x01164250);
-		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
-		CallFlashFunction::install_at_ptr(0x01168710);
-		CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
-		CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
-		/* DEBUGGING HOOKS END */
-#ifndef VANILLA_ARCADE
 		// Redirects the game's WinArcadeInputDriver to the otherwise-unused WindowsSystemInputDriver (likely a leftover from the PC port).
 		sunset::inst::push_u32(reinterpret_cast<void*>(0x0080cf64), 0x500); // Patch argument to operator.new
 		sunset::inst::call(reinterpret_cast<void*>(0x0080cf8d), reinterpret_cast<void*>(0x00814fa0)); // Replace call to constructor
 		sunset::inst::call(reinterpret_cast<void*>(0x0080da31), reinterpret_cast<void*>(0x008156f0)); // Replace call to ::Initialize member function
+		
 		// No-ops code that floods the logger with "dpad pressed" messages.
 		sunset::inst::nop(reinterpret_cast<void*>(0x00814a55), 0x3D);
-#endif
+
 		// Stubs the function that otherwise triggers a a system reboot (What the actual fuck RT??)
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00458680), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x00458680) = 0xC3;
+
 		// Disables AutoPilot
 		sunset::inst::nop(reinterpret_cast<void*>(0x004f3c67), 0x2A);
+		
 		// Disables "System going down for Maintenance" message.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004530c9), 0xF);
 
-#ifndef VANILLA_ARCADE
 		// Fixes an issue where ending an event sent you to the attract menus.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004fe25d), 0x66);
 		sunset::inst::nop(reinterpret_cast<void*>(0x004fe2fa), 0x20);
@@ -815,7 +749,7 @@ extern "C" void __stdcall Pentane_Main() {
 		ToggleStateFlag::install_at_ptr(0x00e9a5c0);
 		// I'll be honest, I have no idea what this does. Hopefully it fixes something!
 		ToggleStateFlag2::install_at_ptr(0x00e9a770);
-#endif
+
 		// Prevents the QR code image from being generated.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00466000), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint32_t*>(0x00466000) = 0x00000CC2;
@@ -824,13 +758,11 @@ extern "C" void __stdcall Pentane_Main() {
 		// As this expects the first tick to send the player straight to the title screen, this approach will NOT work if attract videos are re-enabled.
 		ForceInitializeLocalPlayerOnFirstTick::install_at_ptr(0x0045218b);
 
-		// Instead of reading from the pause global variable like PC does, Arcade instead... checks the lower bits of g_Game???
-		// Whatever, this fixes that.
+		// Instead of reading from the pause global variable like PC does, Arcade instead... checks the lower bits of g_Game? Whatever, this fixes that.
 		ShouldPauseHook::install_at_ptr(0x00ecade0);
 		// Patches two functions to properly update the pause flag.
 		SetPauseFlag0::install_at_ptr(0x00551ab0);
 		SetPauseFlag1::install_at_ptr(0x004fd0b0);
-
 		// Allows the pause/unpause messages to properly propogate through the message dispatcher.
 		GameCommonLoop_PauseMessage_HandleMessage::install_at_ptr(0x00eb66d0);
 
