@@ -9,6 +9,7 @@
 #include "Game/Genie/String.hpp"
 
 static std::atomic<bool> IS_PC = false;
+// static std::atomic<bool> IS_MACHINE_DESKTOP = false;
 
 inline auto WindowsSystemInputDriver_LockPlayerToController = (void(__thiscall*)(std::uintptr_t, int, int))(0x00816dd0);
 inline auto WindowsSystemInputDriver_IsControllerLocked = (bool(__thiscall*)(std::uintptr_t, int))(0x00816ed0);
@@ -210,8 +211,6 @@ DefineReplacementHook(OnConfirmHook) {
 			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0); // g_InputPtr->LockPlayerToController(0, 0);
 			// WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 1, 1); // g_InputPtr->LockPlayerToController(1, 1);
 			*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0; // this->controller_index[0] = 0;
-			// Turns off the Globe as the game transitions to the main menu.
-			_CMessageDispatcher_SendMessageToAll(*reinterpret_cast<void**>(0x01926ef0), "GlobeOff", 0, 0);
 			_CarsFrontEnd_SetScreen(_this, SaveFileLoading, nullptr, true);
 			*reinterpret_cast<bool*>(*g_PopupCallback + 0x10C) = true;
 			break;
@@ -557,14 +556,10 @@ DefineReplacementHook(SetButtonLayout) {
 	static void __fastcall callback(std::uintptr_t _this, std::uintptr_t edx, int scheme) {
 		logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Scheme: {}, ButtonCount: {}", scheme, *reinterpret_cast<int*>(_this + 0xA8));
 		original(_this, edx, scheme);
-		int* button_map = *reinterpret_cast<int**>(_this + 0xB0);
-		button_map[55] = 6;
-		/*
-		for (std::size_t i = 0; i < *reinterpret_cast<int*>(_this + 0xA8); i++) {
-			if (button_map[i] != 0)
-				logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Mapped FlashButton {} -> ControllerButton {}", i, button_map[i]);
-		}
-		*/
+		// if (IS_MACHINE_DESKTOP) {
+			int* button_map = *reinterpret_cast<int**>(_this + 0xB0);
+			button_map[55] = 6;
+		// }
 	}
 };
 
@@ -602,21 +597,6 @@ DefineReplacementHook(ToggleStateFlag2) {
 		*reinterpret_cast<bool*>(_this + 0x10C) = false;
 	}
 };
-
-constexpr auto W = 3840;
-constexpr auto H = 2160;
-
-DefineInlineHook(ChangeSwapChainDesc) {
-	static void _cdecl callback(sunset::InlineCtx & ctx) {
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x80) = W;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0x84) = H;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xB8) = W;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xBC) = H;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF4) = W;
-		*reinterpret_cast<int*>(ctx.eax.unsigned_integer + 0xF8) = H;
-	}
-};
-
 
 std::atomic<bool> FIRST_TICK = true;
 DefineInlineHook(ForceInitializeLocalPlayerOnFirstTick) {
@@ -693,6 +673,12 @@ DefineInlineHook(OnSaveLoaded) {
 		void* _this = *reinterpret_cast<void**>(ctx.ebp.unsigned_integer - 0x28);
 		_CarsFrontEnd_UNK_004c3b70(_this);
 		_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
+
+		std::uintptr_t game_settings = *reinterpret_cast<std::uintptr_t*>(0x0192b8a8);
+		std::uintptr_t unk = *reinterpret_cast<std::uintptr_t*>(game_settings + 0x8);
+		GameCommon_SetPlayerMusicVolume(*g_Game, *reinterpret_cast<float*>(unk + 4), 0);
+		GameCommon_SetPlayerSfxVolume(*g_Game, *reinterpret_cast<float*>(unk + 8), 0);
+		GameCommon_SetPlayerDialogueVolume(*g_Game, *reinterpret_cast<float*>(unk + 12), 0);
 	}
 };
 
@@ -707,17 +693,48 @@ struct ArcadeSetting {
 
 static_assert(sizeof(ArcadeSetting) == 0x64);
 
-DefineInlineHook(OverrideVolumeConfig) {
+/*
+DefineInlineHook(ForceEnableNetAndSetMachineId) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
 		ArcadeSetting* settings = reinterpret_cast<ArcadeSetting*>(ctx.eax.unsigned_integer + 0xA80);
-		settings[0x15].value = 10;
-		settings[0x16].value = 10;
+		// enable network
+		settings[0xB].value = 1;
+		if (IS_MACHINE_DESKTOP) {
+			// Set machine id to 1 if on desktop
+			settings[0xC].value = 1;
+		}
+	}
+};
+*/
+
+DefineInlineHook(OverrideDefaultVolume) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		*reinterpret_cast<std::uint32_t*>(ctx.ecx.unsigned_integer + 0x4) = 0x3F800000;
+		*reinterpret_cast<std::uint32_t*>(ctx.ecx.unsigned_integer + 0x8) = 0x3F800000;
+		*reinterpret_cast<std::uint32_t*>(ctx.ecx.unsigned_integer + 0xC) = 0x3F800000;
+	}
+};
+
+DefineInlineHook(FixRestartVolume) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		// Fix the stack pointer since we nop'd a call to a __thiscall function.
+		ctx.esp.signed_integer += 0xc;
+		*reinterpret_cast<std::uint32_t*>(ctx.ebp.unsigned_integer - 0x4) = 0x3F800000;
 	}
 };
 
 // #define VANILLA_ARCADE 1
 
 extern "C" void __stdcall Pentane_Main() {
+	/*
+	unsigned long computer_name_len = 1024;
+	wchar_t computer_name[1024];
+	GetComputerNameExW(ComputerNameDnsHostname, computer_name, &computer_name_len);
+	if (std::wstring_view(computer_name) == L"DESKTOP-CRU7H46") {
+		IS_MACHINE_DESKTOP = true;
+	}
+	*/
+
 	// FIXME: link against Pentane.lib properly instead of this bullshit!!!!
 	Pentane_LogUTF8 = reinterpret_cast<void(*)(PentaneCStringView*)>(GetProcAddress(GetModuleHandleA("Pentane.dll"), "Pentane_LogUTF8"));
 	wchar_t exe_name[1024];
@@ -802,8 +819,6 @@ extern "C" void __stdcall Pentane_Main() {
 		// Prevents the QR code image from being generated.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00466000), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint32_t*>(0x00466000) = 0x00000CC2;
-		
-		ChangeSwapChainDesc::install_at_ptr(0x0083425d);
 
 		// Force initialize the local player struct on the first call to ArcadeManager::UpdateFrontEnd by setting a local variable to 1.
 		// As this expects the first tick to send the player straight to the title screen, this approach will NOT work if attract videos are re-enabled.
@@ -829,15 +844,16 @@ extern "C" void __stdcall Pentane_Main() {
 		// Un-stubs the function responsible for initializing the clearance level data and passing it over to Flash.
 		sunset::inst::jmp(reinterpret_cast<void*>(0x004b8790), InitClearanceLevelData);
 
-		// NOTE: This might cause unintended side effects.
-		// Sets the default values for both volumes to the maximum.
-		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3CE), 1, sunset::utils::Perm::ExecuteReadWrite);
-		*reinterpret_cast<std::uint8_t*>(0x0045B3CE) = 10;
-		sunset::utils::set_permission(reinterpret_cast<void*>(0x0045B3E8), 1, sunset::utils::Perm::ExecuteReadWrite);
-		*reinterpret_cast<std::uint8_t*>(0x0045B3E8) = 10;
-		// Overrides the volume values read from the save files with the maximum values.
-		OverrideVolumeConfig::install_at_ptr(0x00450791);
+		// Prevents the game from using ArcadeData's master volume on restarting an event.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004f75a7), 5);
+		FixRestartVolume::install_at_ptr(0x004f75a7);
+		// Completely stub ArcadeManager::SetVolume.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x004515e0), 4, sunset::utils::Perm::ReadWrite);
+		*reinterpret_cast<std::uint32_t*>(0x004515e0) = 0x900004C2;
+		// Overrides the default volumes used when there is no save file with the maximum values.
+		OverrideDefaultVolume::install_at_ptr(0x00e9b89b);
 
+		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }
