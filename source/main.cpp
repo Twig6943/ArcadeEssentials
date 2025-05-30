@@ -791,6 +791,12 @@ extern "C" void __stdcall Pentane_Main() {
 		// Overrides the default volumes used when there is no save file with the maximum values.
 		OverrideDefaultVolume::install_at_ptr(0x00e9b89b);
 
+		// Restores the ability for cars to respond to being sidebashed.
+		SideBashHandler::install_at_ptr(0x006fac40);
+
+		// Allows the user to backwards-drive for as long as they want.
+		sunset::inst::nop(reinterpret_cast<void*>(0x006f73eb), 4);
+
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
