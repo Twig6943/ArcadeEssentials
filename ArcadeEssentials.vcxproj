@@ -111,17 +111,38 @@
   <ItemGroup>
     <ClCompile Include="dependencies\sunset\cpp\sunset.cpp" />
     <ClCompile Include="source\main.cpp" />
+    <ClCompile Include="source\Patch\Components\ActiveMoves.cpp" />
     <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp" />
     <ClCompile Include="source\pentane.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="source\Game\Avatar.hpp" />
+    <ClInclude Include="source\Game\CActor.hpp" />
+    <ClInclude Include="source\Game\CarManager.hpp" />
+    <ClInclude Include="source\Game\CarsAIManager.hpp" />
+    <ClInclude Include="source\Game\CarsCamManager.hpp" />
     <ClInclude Include="source\Game\CLinearHash.hpp" />
+    <ClInclude Include="source\Game\CMessage.hpp" />
+    <ClInclude Include="source\Game\Components\ActiveMoves.hpp" />
+    <ClInclude Include="source\Game\Components\CActorComponent.hpp" />
+    <ClInclude Include="source\Game\Components\CarsVehicle.hpp" />
     <ClInclude Include="source\Game\DynamicArray.hpp" />
+    <ClInclude Include="source\Game\GameProgressionManager.hpp" />
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp" />
     <ClInclude Include="source\Game\Genie\String.hpp" />
     <ClInclude Include="source\Game\Kernel.hpp" />
+    <ClInclude Include="source\Game\Physics\RigidBody.hpp" />
     <ClInclude Include="source\Game\Renderer.hpp" />
+    <ClInclude Include="source\Game\Stage\ActivityDBlock.hpp" />
+    <ClInclude Include="source\Game\Stage\ActorCommands.hpp" />
+    <ClInclude Include="source\Game\Stage\Cars2VehicleDBlock.hpp" />
+    <ClInclude Include="source\Game\Stage\DBlock.hpp" />
+    <ClInclude Include="source\Game\Stage\StageEntity.hpp" />
     <ClInclude Include="source\Game\Types.hpp" />
+    <ClInclude Include="source\Game\Utils\AnimEventDispatcher.hpp" />
+    <ClInclude Include="source\Game\Utils\Matrix.hpp" />
+    <ClInclude Include="source\Game\Utils\PIDController.hpp" />
+    <ClInclude Include="source\Game\Utils\Vector3.hpp" />
     <ClInclude Include="source\pentane.hpp" />
   </ItemGroup>
   <ItemGroup>

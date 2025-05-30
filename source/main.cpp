@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <filesystem>
 #include <Windows.h>
 #include <shlwapi.h>
@@ -7,6 +8,9 @@
 #include "pentane.hpp"
 #include "Game/GameSpecificFlashImpl.hpp"
 #include "Game/Genie/String.hpp"
+#include "Game/GameProgressionManager.hpp"
+#include "Game/Stage/StageEntity.hpp"
+#include "Game/Components/ActiveMoves.hpp"
 
 static std::atomic<bool> IS_PC = false;
 // static std::atomic<bool> IS_MACHINE_DESKTOP = false;
@@ -23,13 +27,6 @@ inline auto _CarsFrontEnd_UnkHandleTrackLengthType = (void(__thiscall*)(void*, c
 inline auto _CarsFrontEnd_SetGameModeIndex = (void(__thiscall*)(void*, char*))(0x004c2dc0);
 inline auto _CarsFrontEnd_UNK_004c3b70 = (void(__thiscall*)(void*))(0x004c3b70);
 inline auto Flash_Movie_CallFlashFunction = (void(__cdecl*)(std::uintptr_t, const char*, ...))(0x01168690);
-inline auto _CMessageDispatcher_SendMessageToAll = (void(__thiscall*)(void*, const char*, unsigned int, unsigned int))(0x00cef410);
-inline auto GameProgressionManager_GetSomethingWeDontKnow = (int(__thiscall*)(std::uintptr_t))(0x004ead80);
-inline auto GameProgressionManager_SetSomethingWeDontKnow = (void(__thiscall*)(std::uintptr_t, int))(0x004eadc0);
-inline auto GameProgressionManager_FUN_004e8400 = (void(__thiscall*)(std::uintptr_t, bool))(0x004e8400);
-inline auto GameProgressionManager_FUN_004ebab0 = (void(__thiscall*)(std::uintptr_t, int))(0x004ebab0);
-inline auto GameProgressionManager_FUN_004ebaf0 = (void(__thiscall*)(std::uintptr_t, int))(0x004ebaf0);
-inline auto GameProgressionManager_FormatStoryMission = (char* (__thiscall*)(std::uintptr_t, int, int))(0x004eaf90);
 inline auto Flash_EngineTextureLoader_LoadTextureSet = (void* (__thiscall*)(void*, const char*, bool, int))(0x0116cd20);
 inline auto CTranslator_Translate = (char*(__thiscall*)(void*, void*, bool))(0x00cf6dd0);
 inline auto UnkExcelDataBase_GetUnk = (void(__thiscall*)(void*, void*, void*))(0x0052cd70);
@@ -50,7 +47,7 @@ enum CarsFrontEndScreen {
 	AutoSaveWarning = 2,
 	TitleMenu = 3,
 	UnkSubMenuGears = 4, // FIXME
-	SaveFileLoading = 5, // FIXME
+	SaveFileLoading = 5,
 	SaveSlots = 6, // Causes a game crash!
 	MainMenu_Extras = 7,
 	Extras_Options = 8,
@@ -112,7 +109,6 @@ enum class ControllerButton {
 	Max
 };
 
-inline std::uintptr_t* g_GameProgressionManager = reinterpret_cast<std::uintptr_t*>(0x018ae0f0);
 inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244);
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
@@ -276,14 +272,14 @@ DefineReplacementHook(OnConfirmHook) {
 		{
 			int unk_format_var = 0;
 			if (selected_menu[0] == 'S') {
-				*reinterpret_cast<int*>(*g_GameProgressionManager + 0xb8) = 0;
+				(*g_GameProgressionManager)->unk_index = 0;
 			}
 			else {
-				*reinterpret_cast<int*>(*g_GameProgressionManager + 0xb8) = -1;
+				(*g_GameProgressionManager)->unk_index = -1;
 				unk_format_var = std::atoi(_selected_menu);
 			}
 			int8_t unk_story_mission_index = *reinterpret_cast<std::int8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424);
-			*reinterpret_cast<char**>(reinterpret_cast<std::uintptr_t>(_this) + 0x414) = GameProgressionManager_FormatStoryMission(*g_GameProgressionManager, unk_story_mission_index, unk_format_var);
+			*reinterpret_cast<char**>(reinterpret_cast<std::uintptr_t>(_this) + 0x414) = (*g_GameProgressionManager)->FormatStoryMission(unk_story_mission_index, unk_format_var);
 			_CarsFrontEnd_SetScreen(_this, MissionDetails, nullptr, true);
 		}
 		break;
@@ -367,7 +363,7 @@ DefineReplacementHook(OnConfirmHook) {
 				_CarsFrontEnd_SetScreen(_this, CustomSquadSeries, _selected_menu, true);
 			}
 			else {
-				*reinterpret_cast<int*>(*g_GameProgressionManager + 0xb8) = -1;
+				(*g_GameProgressionManager)->unk_index = -1;
 				_CarsFrontEnd_SetScreen(_this, MT_Hunter, _selected_menu, true);
 			}
 			break;
@@ -385,8 +381,8 @@ DefineReplacementHook(OnConfirmHook) {
 				_CarsFrontEnd_SetScreen(_this, MissionSettings_Unk, nullptr, true);
 			}
 			else {
-				int we_dont_know = GameProgressionManager_GetSomethingWeDontKnow(*g_GameProgressionManager);
-				GameProgressionManager_SetSomethingWeDontKnow(*g_GameProgressionManager, we_dont_know);
+				int ai_car_count = GameProgressionManager_GetAICarCount(*g_GameProgressionManager);
+				GameProgressionManager_SetAICarCount(*g_GameProgressionManager, ai_car_count);
 				_CarsFrontEnd_SetScreen(_this, MissionSettings_Unk2, nullptr, true);
 			}
 			break;
@@ -658,6 +654,15 @@ DefineInlineHook(FixRestartVolume) {
 	}
 };
 
+
+DefineReplacementHook(SideBashHandler) {
+	static bool __fastcall callback(ActiveMoves* _this, std::uintptr_t edx, ActorHandle victim, bool bash_tie) {
+		logger::log_format("[ActiveMoves::TriggerSideBashReactions] Attempting to handle sidebash reaction...");
+		TriggerSideBashReactions(_this, edx, victim, bash_tie);
+		return true;
+	}
+};
+
 extern "C" void __stdcall Pentane_Main() {
 	/*
 	unsigned long computer_name_len = 1024;
@@ -679,18 +684,19 @@ extern "C" void __stdcall Pentane_Main() {
 	if (IS_PC) {
 		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game (PC)...");
 		/* DEBUGGING HOOKS START */
-		ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
-		CallFlashFunction::install_at_ptr(0x010dae50);
-		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
-		CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
+		// ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
+		// CallFlashFunction::install_at_ptr(0x010dae50);
+		// CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
+		// CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
 		/* DEBUGGING HOOKS END */
 	}
 	else {
 		/* DEBUGGING HOOKS START */
-		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
-		CallFlashFunction::install_at_ptr(0x01168710);
-		CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
-		CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
+		// ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
+		// CallFlashFunction::install_at_ptr(0x01168710);
+		// CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
+		// CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
+		SideBashHandler::install_at_ptr(0x006fac40);
 		/* DEBUGGING HOOKS END */
 
 		// Set's ArcadeManager's initial VideoState to 16 (GAME_START), in order to force the game to skip all intro cutscenes.

@@ -14,6 +14,24 @@
     <Filter Include="Source\Game\Genie">
       <UniqueIdentifier>{ebaf1f17-2527-4dcf-a414-c9812eb7796b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Game\Components">
+      <UniqueIdentifier>{454a972c-48c5-431c-ab29-d21e6f2b5d5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Patch">
+      <UniqueIdentifier>{e98b0493-95c9-4e97-993f-e4388a169865}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Patch\Components">
+      <UniqueIdentifier>{122ce5e4-bb65-4a5b-aa90-4c78c7c89750}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\Stage">
+      <UniqueIdentifier>{63752018-2c54-45c0-ae68-5c4192dd4b91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\Utils">
+      <UniqueIdentifier>{1c7e6018-347b-41d6-a7bd-febb7a8b335b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\Physics">
+      <UniqueIdentifier>{8d87ab73-7620-44d6-96ac-22572b24c0e7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\main.cpp">
@@ -27,6 +45,9 @@
     </ClCompile>
     <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp">
       <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Components\ActiveMoves.cpp">
+      <Filter>Patch\Components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -53,6 +74,66 @@
     </ClInclude>
     <ClInclude Include="source\Game\Genie\String.hpp">
       <Filter>Source\Game\Genie</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Components\ActiveMoves.hpp">
+      <Filter>Source\Game\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\CActor.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Components\CActorComponent.hpp">
+      <Filter>Source\Game\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\GameProgressionManager.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\CarManager.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Stage\DBlock.hpp">
+      <Filter>Source\Game\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Stage\Cars2VehicleDBlock.hpp">
+      <Filter>Source\Game\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Utils\PIDController.hpp">
+      <Filter>Source\Game\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Utils\Vector3.hpp">
+      <Filter>Source\Game\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Physics\RigidBody.hpp">
+      <Filter>Source\Game\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Utils\Matrix.hpp">
+      <Filter>Source\Game\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Stage\ActivityDBlock.hpp">
+      <Filter>Source\Game\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Stage\StageEntity.hpp">
+      <Filter>Source\Game\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Components\CarsVehicle.hpp">
+      <Filter>Source\Game\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Utils\AnimEventDispatcher.hpp">
+      <Filter>Source\Game\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Stage\ActorCommands.hpp">
+      <Filter>Source\Game\Stage</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\CMessage.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\CarsAIManager.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Avatar.hpp">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\CarsCamManager.hpp">
+      <Filter>Source\Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
