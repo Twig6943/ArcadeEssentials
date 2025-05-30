@@ -696,7 +696,6 @@ extern "C" void __stdcall Pentane_Main() {
 		// CallFlashFunction::install_at_ptr(0x01168710);
 		// CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
 		// CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
-		SideBashHandler::install_at_ptr(0x006fac40);
 		/* DEBUGGING HOOKS END */
 
 		// Set's ArcadeManager's initial VideoState to 16 (GAME_START), in order to force the game to skip all intro cutscenes.
@@ -796,6 +795,8 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Allows the user to backwards-drive for as long as they want.
 		sunset::inst::nop(reinterpret_cast<void*>(0x006f73eb), 4);
+		// Prevents RaceManager from trying to inject ControllerButton::Triangle presses in the input driver.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004f3ecf), 2);
 
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
