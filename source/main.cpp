@@ -798,6 +798,10 @@ extern "C" void __stdcall Pentane_Main() {
 		// Prevents RaceManager from trying to inject ControllerButton::Triangle presses in the input driver.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004f3ecf), 2);
 
+		// Prevents events from ending once the timer hits 180s.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x004F3B79), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x004F3B79) = 0;
+
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
