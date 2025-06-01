@@ -112,6 +112,7 @@
     <ClCompile Include="dependencies\sunset\cpp\sunset.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\Patch\Components\ActiveMoves.cpp" />
+    <ClCompile Include="source\Patch\Components\CarsReactionMonitor.cpp" />
     <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp" />
     <ClCompile Include="source\pentane.cpp" />
   </ItemGroup>
@@ -125,7 +126,9 @@
     <ClInclude Include="source\Game\CMessage.hpp" />
     <ClInclude Include="source\Game\Components\ActiveMoves.hpp" />
     <ClInclude Include="source\Game\Components\CActorComponent.hpp" />
+    <ClInclude Include="source\Game\Components\CarsReactionMonitor.hpp" />
     <ClInclude Include="source\Game\Components\CarsVehicle.hpp" />
+    <ClInclude Include="source\Game\Components\CarsVehiclePlayer.hpp" />
     <ClInclude Include="source\Game\DynamicArray.hpp" />
     <ClInclude Include="source\Game\GameProgressionManager.hpp" />
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp" />

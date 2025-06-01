@@ -11,6 +11,7 @@
 #include "Game/GameProgressionManager.hpp"
 #include "Game/Stage/StageEntity.hpp"
 #include "Game/Components/ActiveMoves.hpp"
+#include "Game/Components/CarsReactionMonitor.hpp"
 
 static std::atomic<bool> IS_PC = false;
 // static std::atomic<bool> IS_MACHINE_DESKTOP = false;
@@ -654,6 +655,22 @@ DefineInlineHook(FixRestartVolume) {
 	}
 };
 
+DefineReplacementHook(HandleSpinOut) {
+	static void __fastcall callback(std::uintptr_t _this, std::uintptr_t edx, std::uint32_t a, std::uint32_t b, std::uint32_t c) {
+		CarsVehicle* vehicle = *reinterpret_cast<CarsVehicle**>(_this + 4);
+		*reinterpret_cast<std::uint8_t*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(vehicle) + 0x1470) + 0x1BC) = 1;
+		if (vehicle->GetActiveMoves() != nullptr) {
+			bool should_set = false;
+			if (vehicle->GetActiveMoves()->m_actionState == ActiveMoves::ActionState::TwoWheelLeft || vehicle->GetActiveMoves()->m_actionState == ActiveMoves::ActionState::TwoWheelRight) {
+				should_set = true;
+			}
+			if (should_set) {
+				vehicle->GetActiveMoves()->SetTwoWheelingLeft(false);
+				vehicle->GetActiveMoves()->SetTwoWheelingRight(false);
+			}
+		}
+	}
+};
 
 DefineReplacementHook(SideBashHandler) {
 	static bool __fastcall callback(ActiveMoves* _this, std::uintptr_t edx, ActorHandle victim, bool bash_tie) {
@@ -802,6 +819,11 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x004F3B79), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x004F3B79) = 0;
 
+		// Restores the ability for cars to spin out.
+		HandleSpinOut::install_at_ptr(0x006c3740);
+		sunset::inst::jmp(reinterpret_cast<void*>(0x006d73a0), HandleWipeout);
+		sunset::inst::jmp(reinterpret_cast<void*>(0x006d73b0), HandleCommenceWipeout);
+		
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}

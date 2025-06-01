@@ -4,6 +4,7 @@
 #include "../Game/Stage/ActivityDBlock.hpp"
 #include "../Game/Utils/Vector3.hpp"
 
+inline auto CActor_GetComponentByName = (class CActorComponent*(__thiscall*)(class CActor*, const char*))(0x00e05260);
 inline auto CActor_FromHandle = (class CActor*(_cdecl*)(ActorHandle))(0x00e19e20);
 
 class CActor : public CStageEntity, public ActivityDBlock {
@@ -24,5 +25,9 @@ public:
 
 	inline ActorHandle GetHandle() {
 		return *reinterpret_cast<ActorHandle*>(reinterpret_cast<std::uintptr_t>(this) + 0x24);
+	}
+	
+	inline CActorComponent* GetComponentByName(const char* name) {
+		return CActor_GetComponentByName(this, name);
 	}
 };

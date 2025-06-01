@@ -10,6 +10,8 @@
 #include "../../Game/Physics/RigidBody.hpp"
 
 inline auto ActiveMoves_SendSideBashMunitionImpact = (void(__thiscall*)(class ActiveMoves*, ActorHandle))(0x006fac50);
+inline auto ActiveMoves_SetTwoWheelingLeft = (void(__thiscall*)(class ActiveMoves*, bool))(0x006f9aa0);
+inline auto ActiveMoves_SetTwoWheelingRight = (void(__thiscall*)(class ActiveMoves*, bool))(0x006f9be0);
 
 class ActiveMoves : public CActorComponent {
 public: 
@@ -210,44 +212,50 @@ public:
 	inline bool GetTurboing() const {
 		return m_turboing;
 	}
-	bool GetInAirFromBunnyHop() const {
+	inline bool GetInAirFromBunnyHop() const {
 		return m_inAirFromBunnyHopping;
 	}
-	bool GetBunnyHopping() const {
+	inline bool GetBunnyHopping() const {
 		return m_actionState == ActionState::BunnyHop;
 	}
-	bool GetSideSteppingLeft() const {
+	inline bool GetSideSteppingLeft() const {
 		return m_actionState == ActionState::SideStepLeft;
 	}
-	bool GetSideSteppingRight() const {
+	inline bool GetSideSteppingRight() const {
 		return m_actionState == ActionState::SideStepRight;
 	}
-	bool GetSideStepping() const {
+	inline bool GetSideStepping() const {
 		return GetSideSteppingLeft() || GetSideSteppingRight();
 	}
-	bool GetTwoWheelingLeft() const {
+	inline bool GetTwoWheelingLeft() const {
 		return m_actionState == ActionState::TwoWheelLeft;
 	}
-	bool GetTwoWheelingRight() const {
+	inline bool GetTwoWheelingRight() const {
 		return m_actionState == ActionState::TwoWheelRight;
 	}
-	bool GetTwoWheeling() const {
+	inline bool GetTwoWheeling() const {
 		return GetTwoWheelingLeft() || GetTwoWheelingRight();
 	}
-	bool GetBackwardsDriving() const {
+	inline bool GetBackwardsDriving() const {
 		return m_actionState == ActionState::BackwardsDriving;
 	}
-	bool GetDriftingLeft() const {
+	inline bool GetDriftingLeft() const {
 		return m_actionState == ActionState::DriftLeft;
 	}
-	bool GetDriftingRight() const {
+	inline bool GetDriftingRight() const {
 		return m_actionState == ActionState::DriftRight;
 	}
-	bool GetDrifting() const {
+	inline bool GetDrifting() const {
 		return GetDriftingLeft() || GetDriftingRight();
 	}
-	void SendSideBashMunitionImpact(ActorHandle handle) {
+	inline void SendSideBashMunitionImpact(ActorHandle handle) {
 		ActiveMoves_SendSideBashMunitionImpact(this, handle);
+	}
+	inline void SetTwoWheelingLeft(bool two_wheeling_left) {
+		ActiveMoves_SetTwoWheelingLeft(this, two_wheeling_left);
+	}
+	inline void SetTwoWheelingRight(bool two_wheeling_right) {
+		ActiveMoves_SetTwoWheelingRight(this, two_wheeling_right);
 	}
 };
 

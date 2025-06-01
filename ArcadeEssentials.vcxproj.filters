@@ -49,6 +49,9 @@
     <ClCompile Include="source\Patch\Components\ActiveMoves.cpp">
       <Filter>Patch\Components</Filter>
     </ClCompile>
+    <ClCompile Include="source\Patch\Components\CarsReactionMonitor.cpp">
+      <Filter>Patch\Components</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Game\Types.hpp">
@@ -134,6 +137,12 @@
     </ClInclude>
     <ClInclude Include="source\Game\CarsCamManager.hpp">
       <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Components\CarsReactionMonitor.hpp">
+      <Filter>Source\Game\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Components\CarsVehiclePlayer.hpp">
+      <Filter>Source\Game\Components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
