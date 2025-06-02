@@ -114,9 +114,9 @@ public:
 	float m_jumpPreloadTime;
 	float m_jumpTriggerTime;
 	float m_jumpElapsedTime;
+	float m_backwardsDrivingTimer;
 	float m_turboDuration;
 	float m_turboTime;
-	float m_unk; // i dont know why i need this here BUT i need it
 	bool m_turboing;
 	bool m_honorTurboDuration;
 	std::uint32_t m_turboSfxHandle;

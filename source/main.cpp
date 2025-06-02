@@ -672,6 +672,41 @@ DefineReplacementHook(HandleSpinOut) {
 	}
 };
 
+DefineReplacementHook(LockInBro) {
+	static bool __fastcall callback(CarsVehicle* _this, std::uintptr_t edx, bool param_1) {
+		bool bVar1 = false;
+		if (!_this->GetInTheZone()) {
+			if (_this->GetActiveMoves() == nullptr) {
+				bVar1 = false;
+			}
+			else {
+				if (!param_1) {
+					if (_this->GetActiveMoves()->m_turboing == false) {
+						return false;
+					}
+					if (_this->GetActiveMoves()->m_turboTime > 0.5) {
+						return false;
+					}
+				}
+				float local_8 = *reinterpret_cast<float*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x117C) + 0x58);
+				if (!param_1) {
+					local_8 = local_8 - *reinterpret_cast<float*>(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x117C) + 0x54);
+				}
+				if (local_8 <= _this->GetCarEnergy().m_energy) {
+					bVar1 = _this->GoInTheZone(false, false);
+				}
+				else {
+					bVar1 = false;
+				}
+			}
+		}
+		else {
+			bVar1 = false;
+		}
+		return bVar1;
+	}
+};
+
 DefineReplacementHook(SideBashHandler) {
 	static bool __fastcall callback(ActiveMoves* _this, std::uintptr_t edx, ActorHandle victim, bool bash_tie) {
 		logger::log_format("[ActiveMoves::TriggerSideBashReactions] Attempting to handle sidebash reaction...");
@@ -814,7 +849,7 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::inst::nop(reinterpret_cast<void*>(0x006f73eb), 4);
 		// Prevents RaceManager from trying to inject ControllerButton::Triangle presses in the input driver.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004f3ecf), 2);
-
+		
 		// Prevents events from ending once the timer hits 180s.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x004F3B79), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x004F3B79) = 0;
@@ -824,6 +859,14 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::inst::jmp(reinterpret_cast<void*>(0x006d73a0), HandleWipeout);
 		sunset::inst::jmp(reinterpret_cast<void*>(0x006d73b0), HandleCommenceWipeout);
 		
+		// Brings the ITZ initialization logic closer to the original game.
+		LockInBro::install_at_ptr(0x006b3320);
+		// Prevents the game from forcing ITZ on every turbo.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x006F96B2), 5, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint32_t*>(0x006F96B2) = 0x9004C483;
+		*reinterpret_cast<std::uint8_t*>(0x006F96B6) = 0x90;
+		sunset::inst::nop(reinterpret_cast<void**>(0x006f96bc), 6);
+
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
