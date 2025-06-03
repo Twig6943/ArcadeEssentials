@@ -715,6 +715,23 @@ DefineReplacementHook(SideBashHandler) {
 	}
 };
 
+DefineReplacementHook(StartInvulnHook) {
+	static void __fastcall callback(std::uintptr_t _this) {
+		if (!*reinterpret_cast<bool*>(_this + 0x170)) {
+			*reinterpret_cast<std::uint32_t*>(_this + 0x260) = 0x40200000;
+		}
+		else {
+			*reinterpret_cast<bool*>(_this + 0x170) = 0;
+		}
+	}
+};
+
+DefineInlineHook(BeginFrameHook) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		*reinterpret_cast<bool*>(ctx.edx.unsigned_integer + 0x170) = false;
+	}
+};
+
 extern "C" void __stdcall Pentane_Main() {
 	/*
 	unsigned long computer_name_len = 1024;
@@ -867,6 +884,12 @@ extern "C" void __stdcall Pentane_Main() {
 		*reinterpret_cast<std::uint8_t*>(0x006F96B6) = 0x90;
 		sunset::inst::nop(reinterpret_cast<void**>(0x006f96bc), 6);
 
+		// Fixes an issue where lemon cars would remain indefinetly `Invulnerable`.
+		BeginFrameHook::install_at_ptr(0x006d432c);
+		StartInvulnHook::install_at_ptr(0x006d5640);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x006d3898), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x006d3898) = 0;
+		
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}

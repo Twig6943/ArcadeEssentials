@@ -20,7 +20,7 @@ bool _fastcall TriggerSideBashReactions(ActiveMoves* _this, std::uintptr_t edx, 
 		return false;
 	}
 
-	ActiveMoves* pAM = *reinterpret_cast<ActiveMoves**>(reinterpret_cast<std::uintptr_t>(Cars2VehicleDBlock::Get(*victimPtr)) + 24);
+	ActiveMoves* pAM = Cars2VehicleDBlock::Get(*victimPtr)->m_activeMoves;
 	if (pAM == nullptr) {
 		return false;
 	}
@@ -182,7 +182,6 @@ bool _fastcall TriggerSideBashReactions(ActiveMoves* _this, std::uintptr_t edx, 
 	uint32_t victimRumbleDurationMS = 250;
 	int myRumbleMagnitude = 128;
 	int victimRumbleMagnitude = 128;
-	// TODO: FIX THIS!!! Is this accurate to Cock 2?
 	if (bashTie) {
 		victimRBody->SetVelocity(hisNewVel);
 	}
@@ -196,7 +195,7 @@ bool _fastcall TriggerSideBashReactions(ActiveMoves* _this, std::uintptr_t edx, 
 
 	Avatar* myAvatar = Avatar::FromCActor(_this->actor);
 	if (myAvatar && myAvatar->IsPlayerControlled()) {
-		CarsControlMapper* ccm = *reinterpret_cast<CarsControlMapper**>(reinterpret_cast<std::uintptr_t>(Cars2VehicleDBlock::Get(*_this->actor)) + 32);
+		CarsControlMapper* ccm = Cars2VehicleDBlock::Get(*_this->actor)->m_carsControlMapper;
 		if (ccm != nullptr) ccm->SetVibrationDuration(myRumbleDurationMS, myRumbleMagnitude);
 	}
 
@@ -204,7 +203,7 @@ bool _fastcall TriggerSideBashReactions(ActiveMoves* _this, std::uintptr_t edx, 
 	if (victimAvatar && victimAvatar->IsPlayerControlled()) {
 		int playerId = victimAvatar->GetPlayerId();
 		(*g_CarsCamManager)->StartEyeShake(playerId, 0.8f, 10.0f, static_cast<float>(victimRumbleDurationMS) / 1000.0f, true, Vector3(1.0f, 1.0f, 1.0f));
-		CarsControlMapper* ccm = *reinterpret_cast<CarsControlMapper**>(reinterpret_cast<std::uintptr_t>(Cars2VehicleDBlock::Get(*_this->actor)) + 32);
+		CarsControlMapper* ccm = Cars2VehicleDBlock::Get(*_this->actor)->m_carsControlMapper;
 		if (ccm != nullptr) ccm->SetVibrationDuration(victimRumbleDurationMS, victimRumbleMagnitude);
 	}
 

@@ -29,7 +29,12 @@ struct PluginInformation {
 	PentaneUUID uuid;
 	SemVer version;
 	SemVer minimum_pentane_version;
+	char reserved[484];
 };
+
+// The size of PluginInformation should be kept at 1024 bytes throughout Pentane updates.
+// This should theoretically allow for Pentane to update the layout of PluginInformation without breaking compatibility with older plugins.
+static_assert(sizeof(PluginInformation) == 0x400);
 
 extern void(*Pentane_LogUTF8)(PentaneCStringView*);
 

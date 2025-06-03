@@ -26,7 +26,7 @@ public:
 		const char* localized_name;
 		MissionMode mode;
 	};
-	static inline std::array<MissionModeInfo, 8>* s_MissionModeInfos = reinterpret_cast<std::array<MissionModeInfo, 8>*>(0x0184cea0);
+	static inline MissionModeInfo* s_MissionModeInfos = reinterpret_cast<MissionModeInfo*>(0x0184cea0);
 public:
 	char unk[0xB8];
 	int unk_index;

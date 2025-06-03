@@ -38,8 +38,7 @@ void __fastcall HandleWipeout(CarsReactionMonitor* _this, std::uintptr_t edx, in
 }
 
 void __fastcall HandleCommenceWipeout(CarsReactionMonitor* _this) {
-    Cars2VehicleDBlock* block = Cars2VehicleDBlock::Get(*_this->actor);
-    CarsVehicle* vehicle = *reinterpret_cast<CarsVehicle**>(reinterpret_cast<std::uintptr_t>(block) + 0x10);
+	CarsVehicle* vehicle = Cars2VehicleDBlock::Get(*_this->actor)->m_carsVehicle;
     if (vehicle == nullptr || !vehicle->GetInTheZone()) {
         AnimEventDispatcher::SendEvent("React_SpinOut", _this->GetActor().GetHandle());
         if (vehicle != nullptr) {
@@ -69,6 +68,5 @@ void __fastcall HandleCommenceWipeout(CarsReactionMonitor* _this) {
         _this->m_wipingOut = true;
         _this->m_wipeOutRemainingTime = 1.5;
         _this->m_inReactionRemainingTime = 1.5;
-
     }
 }

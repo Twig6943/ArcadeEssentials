@@ -43,14 +43,14 @@
     <ClCompile Include="source\pentane.cpp">
       <Filter>Source</Filter>
     </ClCompile>
-    <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="source\Patch\Components\ActiveMoves.cpp">
       <Filter>Patch\Components</Filter>
     </ClCompile>
     <ClCompile Include="source\Patch\Components\CarsReactionMonitor.cpp">
       <Filter>Patch\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp">
+      <Filter>Patch</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
