@@ -732,6 +732,37 @@ DefineInlineHook(BeginFrameHook) {
 	}
 };
 
+DefineInlineHook(InitHudElements) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		GameProgressionManager::MissionMode mode = *reinterpret_cast<GameProgressionManager::MissionMode*>(ctx.ebp.unsigned_integer - 0x2c);
+		bool multiplayer = (*reinterpret_cast<std::uint32_t*>(0x018aa724) & 0x6000) != 0;
+		int* local_8 = reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x4);
+
+		// NOTE: Theres a chance that this fails horrifically in "multiplayer".
+		if (multiplayer) {
+			logger::log_format("[ArcadeEssentials::InitHudElements] Woah! How are you playing multiplayer?! Aborting...");
+			std::abort();
+		}
+
+		if (mode == GameProgressionManager::MissionMode::Bomb || mode == GameProgressionManager::MissionMode::Hunter || mode == GameProgressionManager::MissionMode::Arena) {
+			*local_8 = 7;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 15;
+		}
+		else if (mode == GameProgressionManager::MissionMode::Collect) {
+			*local_8 = 4;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 10;
+		}
+		else if (mode == GameProgressionManager::MissionMode::Takedown) {
+			*local_8 = 3;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 5;
+		}
+		else if (mode == GameProgressionManager::MissionMode::Tutorial) {
+			*local_8 = 1;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 7;
+		}
+	}
+};
+
 extern "C" void __stdcall Pentane_Main() {
 	/*
 	unsigned long computer_name_len = 1024;
@@ -890,6 +921,9 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x006d3898), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x006d3898) = 0;
 		
+		// Fixes an issue where non-race mission modes would always fall back to the same UI.
+		InitHudElements::install_at_ptr(0x0055114c);
+
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
