@@ -18,6 +18,7 @@ static std::atomic<bool> IS_PC = false;
 
 inline auto WindowsSystemInputDriver_LockPlayerToController = (void(__thiscall*)(std::uintptr_t, int, int))(0x00816dd0);
 inline auto WindowsSystemInputDriver_IsControllerLocked = (bool(__thiscall*)(std::uintptr_t, int))(0x00816ed0);
+inline auto WindowsSystemInputDriver_GetUnlockedController= (void*(__thiscall*)(std::uintptr_t, int))(0x00817050);
 inline auto FUN_00ef3a30 = (void(__thiscall*)(std::uintptr_t))(0x00ef3a30);
 inline auto FUN_0060e7d0 = (void(__thiscall*)(std::uintptr_t, int, int))(0x0060e7d0);
 inline auto FUN_0060ee20 = (void**(__thiscall*)(std::uintptr_t, void*, int))(0x0060ee20);
@@ -41,6 +42,10 @@ inline auto FUN_00f66d60 = (std::uint32_t(__thiscall*)(void*, std::uint32_t))(0x
 inline auto GameCommon_SetPlayerSfxVolume = (void(__thiscall*)(void*, float, char))(0x00eb48b0);
 inline auto GameCommon_SetPlayerMusicVolume = (void(__thiscall*)(void*, float, char))(0x00eb49a0);
 inline auto GameCommon_SetPlayerDialogueVolume = (void(__thiscall*)(void*, float, char))(0x00eb4a90);
+inline auto FUN_0116d4d0 = (void(__thiscall*)(std::uintptr_t, std::uintptr_t, const char*))(0x0116d4d0);
+inline auto CSaveGame_UNK_00ee99a0 = (void(__thiscall*)(std::uintptr_t, bool))(0x00ee99a0);
+inline auto CSaveGame_ClearLoadedData = (void(__thiscall*)(std::uintptr_t))(0x00ee9ae0);
+inline auto FUN_00ba0870 = (void(__thiscall*)(std::uintptr_t, std::uintptr_t))(0x00ba0870);
 
 enum CarsFrontEndScreen {
 	Invalid = 0,
@@ -184,6 +189,21 @@ DefineReplacementHook(RegisterGoBack) {
 	}
 };
 
+int GetNumUnlockedControllers() {
+	int unlocked_controller_count = 0;
+	for (int i = 0; i < 11; i = i + 1) {
+		void* controller = WindowsSystemInputDriver_GetUnlockedController(*g_InputPtr, i);
+		if (controller != nullptr) {
+			std::uintptr_t* controller_inst = *reinterpret_cast<std::uintptr_t**>(controller);
+			auto func = *reinterpret_cast<bool(__thiscall**)(void*)>(*controller_inst + 0x10);
+			if (func(controller)) {
+				unlocked_controller_count = unlocked_controller_count + 1;
+			}
+		}
+	}
+	return unlocked_controller_count;
+}
+
 DefineReplacementHook(OnConfirmHook) {
 	static void __fastcall callback(void* _this, std::uintptr_t edx, char* _selected_menu, std::uintptr_t unk_menu) {
 		std::string selected_menu = _selected_menu;
@@ -197,8 +217,15 @@ DefineReplacementHook(OnConfirmHook) {
 		std::int32_t menu_state = *(reinterpret_cast<std::int32_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xA8));
 		switch (menu_state) {
 		case ExitToWindows:
+			*reinterpret_cast<std::uint8_t*>(g_PopupCallback + 0x131) = 1;
+			if (selected_menu == "SharedText_Yes") {
+				std::exit(0);
+			} else {
+				_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
+				std::uint32_t array[2] = { 1, 0 };
+				FUN_00ba0870(reinterpret_cast<std::uintptr_t>(_this) + 0x3e8, reinterpret_cast<std::uintptr_t>(&array));
+			}
 			break;
-
 		case AutoSaveWarning:
 			_CarsFrontEnd_SetScreen(_this, TitleMenu, nullptr, true);
 			break;
@@ -208,10 +235,34 @@ DefineReplacementHook(OnConfirmHook) {
 			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0); // g_InputPtr->LockPlayerToController(0, 0);
 			// WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 1, 1); // g_InputPtr->LockPlayerToController(1, 1);
 			*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0; // this->controller_index[0] = 0;
+			// *reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7E0) = 1; // this->controller_index[1] = 1;
 			_CarsFrontEnd_SetScreen(_this, SaveFileLoading, nullptr, true);
 			*reinterpret_cast<bool*>(*g_PopupCallback + 0x10C) = true;
 			break;
 		case SaveSlots:
+			{
+				int index = std::atoi(_selected_menu);
+				if (index < 0 || index > 2) {
+					index = 0;
+				}
+				std::uintptr_t g_SaveGame = *reinterpret_cast<std::uintptr_t*>(0x0192b8d0);
+				*reinterpret_cast<int*>(g_SaveGame + 0x60) = index;
+				if (*reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x4C + index * 24) == 0) {
+					CSaveGame_ClearLoadedData(g_SaveGame);
+					std::uintptr_t* g_GameSettings = *reinterpret_cast<std::uintptr_t**>(0x0192b8a8);
+					auto func = *reinterpret_cast<void(__thiscall**)(std::uintptr_t*)>(*g_GameSettings + 0xC);
+					func(g_GameSettings);
+				}
+				else {
+					CSaveGame_UNK_00ee99a0(g_SaveGame, false);
+				}
+				std::uintptr_t game_settings = *reinterpret_cast<std::uintptr_t*>(0x0192b8a8);
+				std::uintptr_t unk = *reinterpret_cast<std::uintptr_t*>(game_settings + 0x8);
+				GameCommon_SetPlayerMusicVolume(*g_Game, *reinterpret_cast<float*>(unk + 4), 0);
+				GameCommon_SetPlayerSfxVolume(*g_Game, *reinterpret_cast<float*>(unk + 8), 0);
+				GameCommon_SetPlayerDialogueVolume(*g_Game, *reinterpret_cast<float*>(unk + 12), 0);
+				_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, true);
+			}
 			break;
 
 		case MainMenu_Extras:
@@ -604,13 +655,12 @@ DefineInlineHook(OnSaveLoaded) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
 		void* _this = *reinterpret_cast<void**>(ctx.ebp.unsigned_integer - 0x28);
 		_CarsFrontEnd_UNK_004c3b70(_this);
+		if (*reinterpret_cast<bool*>((*reinterpret_cast<std::uintptr_t*>(0x018d3470)) + 0x7C)) {
+			_CarsFrontEnd_SetScreen(_this, SaveSlots, nullptr, false);
+		}
+		else {
 		_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
-
-		std::uintptr_t game_settings = *reinterpret_cast<std::uintptr_t*>(0x0192b8a8);
-		std::uintptr_t unk = *reinterpret_cast<std::uintptr_t*>(game_settings + 0x8);
-		GameCommon_SetPlayerMusicVolume(*g_Game, *reinterpret_cast<float*>(unk + 4), 0);
-		GameCommon_SetPlayerSfxVolume(*g_Game, *reinterpret_cast<float*>(unk + 8), 0);
-		GameCommon_SetPlayerDialogueVolume(*g_Game, *reinterpret_cast<float*>(unk + 12), 0);
+	}
 	}
 };
 
@@ -732,13 +782,25 @@ DefineInlineHook(BeginFrameHook) {
 	}
 };
 
+DefineReplacementHook(FixRevITUI) {
+	static void __fastcall callback(std::uintptr_t _this) {
+		if (*reinterpret_cast<std::int32_t*>(_this + 0x40) == 0) {
+			FUN_0116d4d0(*reinterpret_cast<std::uintptr_t*>(0x0192e19c), _this + 0x8cc, "to_energyMeter");
+		}
+		else {
+			FUN_0116d4d0(*reinterpret_cast<std::uintptr_t*>(0x0192e19c), _this + 0x28, "init");
+		}
+		*reinterpret_cast<std::uint32_t*>(_this + 0x40) = 1;
+	}
+};
+
 DefineInlineHook(InitHudElements) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
 		GameProgressionManager::MissionMode mode = *reinterpret_cast<GameProgressionManager::MissionMode*>(ctx.ebp.unsigned_integer - 0x2c);
 		bool multiplayer = (*reinterpret_cast<std::uint32_t*>(0x018aa724) & 0x6000) != 0;
 		int* local_8 = reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x4);
 
-		// NOTE: Theres a chance that this fails horrifically in "multiplayer".
+		// NOTE: Theres a good chance that this fails horrifically in "multiplayer". Hence why we std::abort.
 		if (multiplayer) {
 			logger::log_format("[ArcadeEssentials::InitHudElements] Woah! How are you playing multiplayer?! Aborting...");
 			std::abort();
@@ -760,6 +822,33 @@ DefineInlineHook(InitHudElements) {
 			*local_8 = 1;
 			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 7;
 		}
+	}
+};
+
+DefineInlineHook(SupplyFlashArgs) {
+	static void __cdecl callback(sunset::InlineCtx & ctx) {
+		*reinterpret_cast<std::uintptr_t*>(ctx.esp.unsigned_integer) = ctx.ebp.unsigned_integer - 0xE8;
+	}
+};
+
+DefineInlineHook(SupplyFlashArgs2) {
+	static void __cdecl callback(sunset::InlineCtx & ctx) {
+		*reinterpret_cast<std::uintptr_t*>(ctx.esp.unsigned_integer) = ctx.ebp.unsigned_integer - 0x30;
+	}
+};
+
+DefineInlineHook(FixTurboUI) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		std::uintptr_t* inst = *reinterpret_cast<std::uintptr_t**>(ctx.ebp.unsigned_integer - 0x18);
+		Genie::String* button_turbo = reinterpret_cast<Genie::String*>(ctx.ebp.unsigned_integer - 0x3C);
+		auto func = *reinterpret_cast<void(__thiscall**)(void*, Genie::String*, const char*, const char*)>(*inst + 0x50);
+		func(inst, button_turbo, "turbo", "normal");
+	}
+};
+
+DefineInlineHook(SRandHook) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		ctx.eax.unsigned_integer = 0;
 	}
 };
 
@@ -841,6 +930,11 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00458680), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x00458680) = 0xC3;
 
+		// Stubs the function that schedules a maintenance reboot when the framerate dips below 30.
+		// (looking at u max)
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x00455650), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x00455650) = 0xC3;
+			
 		// Disables AutoPilot
 		sunset::inst::nop(reinterpret_cast<void*>(0x004f3c67), 0x2A);
 		
@@ -924,6 +1018,27 @@ extern "C" void __stdcall Pentane_Main() {
 		// Fixes an issue where non-race mission modes would always fall back to the same UI.
 		InitHudElements::install_at_ptr(0x0055114c);
 
+		// Fixes the Rev-It! icon meter dissappearing after an event starts.
+		FixRevITUI::install_at_ptr(0x00547ca0);
+		static const char DISPLAY_BUTTON_PROMPT[] = "DisplayButtonPrompt";
+		sunset::inst::push_u32(reinterpret_cast<void*>(0x0054528b), reinterpret_cast<std::uintptr_t>(&DISPLAY_BUTTON_PROMPT));
+		sunset::inst::push_u32(reinterpret_cast<void*>(0x005454f6), reinterpret_cast<std::uintptr_t>(&DISPLAY_BUTTON_PROMPT));
+		SupplyFlashArgs::install_at_ptr(0x0054528b);
+		SupplyFlashArgs2::install_at_ptr(0x005454f6);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x00545288), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x00545288) = 3;
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x005454f3), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x005454f3) = 3;
+		// Restores the TURBO meter/icon.
+		FixTurboUI::install_at_ptr(0x0068fb5b);
+
+		// Removes a premature `jmp` that otherwise ranks AI sidestep actions as 0.0f no matter what. (WTF Microsoft? How is this code still there past the return? Whatever, thanks I guess...)
+		sunset::inst::nop(reinterpret_cast<void*>(0x004215c9), 11);
+
+#ifdef _DEBUG
+		// Sets the random seed to zero instead of the system time.
+		SRandHook::install_at_ptr(0x00450c48);
+#endif
 		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
