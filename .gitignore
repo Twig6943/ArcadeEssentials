@@ -1,4 +1,5 @@
-[Aa]llinol/
+source/patch/private/
+[Aa]rcade[Ee]ssentials/
 vcpkg_installed/
 
 ## Ignore Visual Studio temporary files, build results, and

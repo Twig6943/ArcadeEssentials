@@ -5,7 +5,9 @@
 #include <shlwapi.h>
 #include <sunset.hpp>
 #include <d3d9.h>
+#include <dwmapi.h>
 #include "pentane.hpp"
+#include "Patch/Input/WindowsSystemInputDriver.hpp"
 #include "Game/GameSpecificFlashImpl.hpp"
 #include "Game/Genie/String.hpp"
 #include "Game/GameProgressionManager.hpp"
@@ -14,11 +16,7 @@
 #include "Game/Components/CarsReactionMonitor.hpp"
 
 static std::atomic<bool> IS_PC = false;
-// static std::atomic<bool> IS_MACHINE_DESKTOP = false;
 
-inline auto WindowsSystemInputDriver_LockPlayerToController = (void(__thiscall*)(std::uintptr_t, int, int))(0x00816dd0);
-inline auto WindowsSystemInputDriver_IsControllerLocked = (bool(__thiscall*)(std::uintptr_t, int))(0x00816ed0);
-inline auto WindowsSystemInputDriver_GetUnlockedController= (void*(__thiscall*)(std::uintptr_t, int))(0x00817050);
 inline auto FUN_00ef3a30 = (void(__thiscall*)(std::uintptr_t))(0x00ef3a30);
 inline auto FUN_0060e7d0 = (void(__thiscall*)(std::uintptr_t, int, int))(0x0060e7d0);
 inline auto FUN_0060ee20 = (void**(__thiscall*)(std::uintptr_t, void*, int))(0x0060ee20);
@@ -44,8 +42,20 @@ inline auto GameCommon_SetPlayerMusicVolume = (void(__thiscall*)(void*, float, c
 inline auto GameCommon_SetPlayerDialogueVolume = (void(__thiscall*)(void*, float, char))(0x00eb4a90);
 inline auto FUN_0116d4d0 = (void(__thiscall*)(std::uintptr_t, std::uintptr_t, const char*))(0x0116d4d0);
 inline auto CSaveGame_UNK_00ee99a0 = (void(__thiscall*)(std::uintptr_t, bool))(0x00ee99a0);
+inline auto CSaveGame_UNK_00eea2e0 = (void(__thiscall*)(std::uintptr_t))(0x00eea2e0);
 inline auto CSaveGame_ClearLoadedData = (void(__thiscall*)(std::uintptr_t))(0x00ee9ae0);
 inline auto FUN_00ba0870 = (void(__thiscall*)(std::uintptr_t, std::uintptr_t))(0x00ba0870);
+inline auto FUN_0080df70 = (void(__thiscall*)(std::uintptr_t))(0x0080df70);
+inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
+inline auto operator_new = (void*(_cdecl*)(std::size_t))(0x007b1650);
+inline auto HudPosition_Multi_HudPosition_Multi = (void*(__thiscall*)(void*, std::uint32_t, std::uint32_t))(0x0054b220);
+
+inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
+inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
+inline void** g_Game = reinterpret_cast<void**>(0x01929bfc);
+inline std::uintptr_t* g_SaveGame = reinterpret_cast<std::uintptr_t*>(0x0192b8d0);
+
+#include "Patch/Private/Testing.inl"
 
 enum CarsFrontEndScreen {
 	Invalid = 0,
@@ -54,7 +64,7 @@ enum CarsFrontEndScreen {
 	TitleMenu = 3,
 	UnkSubMenuGears = 4, // FIXME
 	SaveFileLoading = 5,
-	SaveSlots = 6, // Causes a game crash!
+	SaveSlots = 6,
 	MainMenu_Extras = 7,
 	Extras_Options = 8,
 	Extras_EnterCode = 9,
@@ -114,11 +124,6 @@ enum class ControllerButton {
 	Unk6,
 	Max
 };
-
-inline std::uintptr_t* g_InputPtr = reinterpret_cast<std::uintptr_t*>(0x018d3244);
-inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
-inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
-inline void** g_Game = reinterpret_cast<void**>(0x01929bfc);
 
 void __fastcall InitClearanceLevelData(std::uintptr_t unk) {
 	auto iVar2 = FUN_00f675d0(*reinterpret_cast<void**>(0x0192c5ec), "Stat_SPY_POINTS", 1);
@@ -192,7 +197,7 @@ DefineReplacementHook(RegisterGoBack) {
 int GetNumUnlockedControllers() {
 	int unlocked_controller_count = 0;
 	for (int i = 0; i < 11; i = i + 1) {
-		void* controller = WindowsSystemInputDriver_GetUnlockedController(*g_InputPtr, i);
+		void* controller = (*g_InputPtr)->GetUnlockedController(i);
 		if (controller != nullptr) {
 			std::uintptr_t* controller_inst = *reinterpret_cast<std::uintptr_t**>(controller);
 			auto func = *reinterpret_cast<bool(__thiscall**)(void*)>(*controller_inst + 0x10);
@@ -231,13 +236,20 @@ DefineReplacementHook(OnConfirmHook) {
 			break;
 
 		case TitleMenu:
-			// FIXME: PC does a whole lot more with the global input driver, that we do not.
-			WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 0, 0); // g_InputPtr->LockPlayerToController(0, 0);
-			// WindowsSystemInputDriver_LockPlayerToController(*g_InputPtr, 1, 1); // g_InputPtr->LockPlayerToController(1, 1);
-			*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0; // this->controller_index[0] = 0;
-			// *reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7E0) = 1; // this->controller_index[1] = 1;
-			_CarsFrontEnd_SetScreen(_this, SaveFileLoading, nullptr, true);
+			// If theres no controller locked to player 0, we want to lock player 0 to whoever pressed start at the title screen.
+			if (!(*g_InputPtr)->ControllerLocked(0)) {
+				int controller = *_selected_menu - 0x30;
+				(*g_InputPtr)->LockPlayerToController(0, controller);
+				*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = controller;
+			}
+			// reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xOFFSET)) = 1;
+			// reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xOFFSET)) = CMasterTimer_GetOSTime();
+			CSaveGame_UNK_00eea2e0(*g_SaveGame);
+			CSaveGame_ClearLoadedData(*g_SaveGame);
+			FUN_0080df70(*reinterpret_cast<std::uintptr_t*>(0x018d323c));
 			*reinterpret_cast<bool*>(*g_PopupCallback + 0x10C) = true;
+			_CarsFrontEnd_SetScreen(_this, SaveFileLoading, nullptr, true);
+			*reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = static_cast<std::uint8_t>(*reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uintptr_t>(*g_GameProgressionManager) + 0x108));
 			break;
 		case SaveSlots:
 			{
@@ -245,16 +257,15 @@ DefineReplacementHook(OnConfirmHook) {
 				if (index < 0 || index > 2) {
 					index = 0;
 				}
-				std::uintptr_t g_SaveGame = *reinterpret_cast<std::uintptr_t*>(0x0192b8d0);
-				*reinterpret_cast<int*>(g_SaveGame + 0x60) = index;
+				*reinterpret_cast<int*>(*g_SaveGame + 0x60) = index;
 				if (*reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x4C + index * 24) == 0) {
-					CSaveGame_ClearLoadedData(g_SaveGame);
+					CSaveGame_ClearLoadedData(*g_SaveGame);
 					std::uintptr_t* g_GameSettings = *reinterpret_cast<std::uintptr_t**>(0x0192b8a8);
 					auto func = *reinterpret_cast<void(__thiscall**)(std::uintptr_t*)>(*g_GameSettings + 0xC);
 					func(g_GameSettings);
 				}
 				else {
-					CSaveGame_UNK_00ee99a0(g_SaveGame, false);
+					CSaveGame_UNK_00ee99a0(*g_SaveGame, false);
 				}
 				std::uintptr_t game_settings = *reinterpret_cast<std::uintptr_t*>(0x0192b8a8);
 				std::uintptr_t unk = *reinterpret_cast<std::uintptr_t*>(game_settings + 0x8);
@@ -537,12 +548,19 @@ DefineReplacementHook(OnConfirmHook) {
 
 DefineReplacementHook(SetButtonLayout) {
 	static void __fastcall callback(std::uintptr_t _this, std::uintptr_t edx, int scheme) {
-		logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Scheme: {}, ButtonCount: {}", scheme, *reinterpret_cast<int*>(_this + 0xA8));
 		original(_this, edx, scheme);
-		// if (IS_MACHINE_DESKTOP) {
+		int* button_map = *reinterpret_cast<int**>(_this + 0xB0);
+		button_map[55] = 6;
+		/*
+		std::uintptr_t* device = *reinterpret_cast<std::uintptr_t**>(_this + 0xC);
+		if (device != nullptr) {
+			auto func = *reinterpret_cast<const char* (__thiscall**)(std::uintptr_t*)>(*device + 0x8);
+			const char* name = func(device);
+			logger::log_format("[Flash::FlashControlMapper::SetButtonLayout] Mapping Start -> A for: {}", name);
 			int* button_map = *reinterpret_cast<int**>(_this + 0xB0);
 			button_map[55] = 6;
-		// }
+		}
+		*/
 	}
 };
 
@@ -659,35 +677,10 @@ DefineInlineHook(OnSaveLoaded) {
 			_CarsFrontEnd_SetScreen(_this, SaveSlots, nullptr, false);
 		}
 		else {
-		_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
-	}
-	}
-};
-
-struct ArcadeSetting {
-	unsigned int type;
-	int value;
-	char string_value[80];
-	unsigned int value_offset;
-	bool initialized;
-	char* key;
-};
-
-static_assert(sizeof(ArcadeSetting) == 0x64);
-
-/*
-DefineInlineHook(ForceEnableNetAndSetMachineId) {
-	static void _cdecl callback(sunset::InlineCtx & ctx) {
-		ArcadeSetting* settings = reinterpret_cast<ArcadeSetting*>(ctx.eax.unsigned_integer + 0xA80);
-		// enable network
-		settings[0xB].value = 1;
-		if (IS_MACHINE_DESKTOP) {
-			// Set machine id to 1 if on desktop
-			settings[0xC].value = 1;
+			_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
 		}
 	}
 };
-*/
 
 DefineInlineHook(OverrideDefaultVolume) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
@@ -805,23 +798,30 @@ DefineInlineHook(InitHudElements) {
 			logger::log_format("[ArcadeEssentials::InitHudElements] Woah! How are you playing multiplayer?! Aborting...");
 			std::abort();
 		}
-
+		// For MissionMode::Race, 1 Player -> 2, 2 Player -> 3, Else -> 4.
 		if (mode == GameProgressionManager::MissionMode::Bomb || mode == GameProgressionManager::MissionMode::Hunter || mode == GameProgressionManager::MissionMode::Arena) {
 			*local_8 = 7;
-			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 15;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 15; // 1 Player -> 15, 2 Player -> 16, Else -> 17
 		}
 		else if (mode == GameProgressionManager::MissionMode::Collect) {
 			*local_8 = 4;
-			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 10;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 10; // 1 Player -> 10, 2 Player -> 11, Else -> 12
 		}
 		else if (mode == GameProgressionManager::MissionMode::Takedown) {
 			*local_8 = 3;
-			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 5;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 5; // 1 Player -> 5, Else -> 6
 		}
 		else if (mode == GameProgressionManager::MissionMode::Tutorial) {
 			*local_8 = 1;
-			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 7;
+			*reinterpret_cast<int*>(ctx.esp.unsigned_integer) = 7; // 1 Player -> 7, Else -> 8
 		}
+	}
+};
+
+DefineReplacementHook(SetVolumeLogger) {
+	static std::uint32_t __fastcall callback(std::uintptr_t ecx, std::uintptr_t edx, int group, float unk1, float unk2) {
+		logger::log_format("[AudioEventManager::SetVolume] {}, {}, {}", group, unk1, unk2);
+		return original(ecx, edx, group, unk1, unk2);
 	}
 };
 
@@ -852,16 +852,176 @@ DefineInlineHook(SRandHook) {
 	}
 };
 
-extern "C" void __stdcall Pentane_Main() {
-	/*
-	unsigned long computer_name_len = 1024;
-	wchar_t computer_name[1024];
-	GetComputerNameExW(ComputerNameDnsHostname, computer_name, &computer_name_len);
-	if (std::wstring_view(computer_name) == L"DESKTOP-CRU7H46") {
-		IS_MACHINE_DESKTOP = true;
+DefineReplacementHook(HandleInputHook) {
+	static bool _fastcall callback(std::uintptr_t ecx, std::uintptr_t edx, bool do_locked_player_input, int force_id) {
+		logger::log_format("[HandleInput] {}, {}", do_locked_player_input, force_id);
+		return original(ecx, edx, do_locked_player_input, force_id);
 	}
-	*/
+};
 
+DefineInlineHook(GetMinMaxPlayer) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		if (!IS_PC) {
+			int min = *reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x8);
+			int max = *reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x10);
+			logger::log_format("[HandleInput] Min: {}, Max: {}", min, max);
+		}
+		else {
+			int min = *reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x8);
+			int max = *reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x14);
+			logger::log_format("[HandleInput] Min: {}, Max: {}", min, max);
+		}
+	}
+};
+
+std::string_view usage_to_str(int usage) {
+	switch (usage) {
+	case D3DDECLUSAGE_POSITION: return "Position";
+		case D3DDECLUSAGE_BLENDWEIGHT: return "BlendWeight";
+		case D3DDECLUSAGE_BLENDINDICES: return "BlendIndices";
+		case D3DDECLUSAGE_NORMAL: return "Normal";
+		case D3DDECLUSAGE_PSIZE: return "PSize";
+		case D3DDECLUSAGE_TEXCOORD: return "TexCoord";
+		case D3DDECLUSAGE_TANGENT: return "Tangent";
+		case D3DDECLUSAGE_BINORMAL: return "Binormal";
+		case D3DDECLUSAGE_TESSFACTOR: return "TessFactor";
+		case D3DDECLUSAGE_POSITIONT: return "PositionT";
+		case D3DDECLUSAGE_COLOR: return "Color";
+		case D3DDECLUSAGE_FOG: return "Fog";
+		case D3DDECLUSAGE_DEPTH: return "Depth";
+		case D3DDECLUSAGE_SAMPLE: return "Sample";
+		default: return "Unknown";
+	}
+}
+
+std::string_view type_to_str(int type) {
+	switch (type) {
+	case D3DDECLTYPE_FLOAT1:     return "FLOAT1";
+	case D3DDECLTYPE_FLOAT2:     return "FLOAT2";
+	case D3DDECLTYPE_FLOAT3:     return "FLOAT3";
+	case D3DDECLTYPE_FLOAT4:     return "FLOAT4";
+	case D3DDECLTYPE_D3DCOLOR:   return "D3DCOLOR";
+	case D3DDECLTYPE_UBYTE4:     return "UBYTE4";
+	case D3DDECLTYPE_SHORT2:     return "SHORT2";
+	case D3DDECLTYPE_SHORT4:     return "SHORT4";
+	case D3DDECLTYPE_UBYTE4N:    return "UBYTE4N";
+	case D3DDECLTYPE_SHORT2N:    return "SHORT2N";
+	case D3DDECLTYPE_SHORT4N:    return "SHORT4N";
+	case D3DDECLTYPE_USHORT2N:   return "USHORT2N";
+	case D3DDECLTYPE_USHORT4N:   return "USHORT4N";
+	case D3DDECLTYPE_UDEC3:      return "UDEC3";
+	case D3DDECLTYPE_DEC3N:      return "DEC3N";
+	case D3DDECLTYPE_FLOAT16_2:  return "FLOAT16_2";
+	case D3DDECLTYPE_FLOAT16_4:  return "FLOAT16_4";
+	case D3DDECLTYPE_UNUSED:     return "Unused";
+	default:                     return "Unkown";
+	}
+}
+
+DefineInlineHook(CheckVertDecl) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		const auto* error_string = reinterpret_cast<const wchar_t*>(ctx.eax.unsigned_integer);
+		auto* elements = reinterpret_cast<D3DVERTEXELEMENT9*>(ctx.ebp.unsigned_integer - 148);
+		logger::log_format("[VertexDeclaration::Create] Failed to create vertex declaration!");
+		for (std::size_t i = 0; i < 16; i++) {
+			D3DVERTEXELEMENT9 end = D3DDECL_END();
+			if (std::memcmp(&elements[i], &end, sizeof(D3DVERTEXELEMENT9)) == 0) {
+				break;
+			}
+			logger::log_format("[VertexDeclaration::Create] Element {}: ", i);
+			logger::log_format("[VertexDeclaration::Create]\tStream: {}", elements[i].Stream);
+			logger::log_format("[VertexDeclaration::Create]\tOffset: {}", elements[i].Offset);
+			logger::log_format("[VertexDeclaration::Create]\tType: {}", type_to_str(elements[i].Type));
+			logger::log_format("[VertexDeclaration::Create]\tUsage: {}", usage_to_str(elements[i].Usage));
+			logger::log_format("[VertexDeclaration::Create]\tUsageIndex: {}", elements[i].UsageIndex);
+		}
+	}
+};
+
+DefineReplacementHook(ElementTypeGetter) {
+	static D3DDECLTYPE _cdecl callback(std::uint32_t octane_format) {
+		D3DDECLTYPE type = original(octane_format);
+		if (type == D3DDECLTYPE_UNUSED) {
+			logger::log_format("[Renderer::Convert::To] Encountered invalid element type: {}!", octane_format);
+		}
+		return type;
+	}
+};
+
+DefineInlineHook(AsBind) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		auto* decl = reinterpret_cast<IDirect3DVertexDeclaration9*>(ctx.eax.unsigned_integer);
+		if (decl == nullptr || decl == reinterpret_cast<IDirect3DVertexDeclaration9*>(1)) {
+			logger::log_format("[Renderer::VertexDeclaration::Bind] Attempted to bind null VertexDeclaration!");
+			ctx.eax.unsigned_integer = 0;
+		}
+		/*
+		else {
+			std::array<D3DVERTEXELEMENT9, MAXD3DDECLLENGTH> elements{};
+			unsigned int max_size = MAXD3DDECLLENGTH;
+			decl->GetDeclaration(elements.data(), &max_size);
+			for (std::size_t i = 0; i < max_size; i++) {
+				D3DVERTEXELEMENT9 end = D3DDECL_END();
+				if (std::memcmp(&elements[i], &end, sizeof(D3DVERTEXELEMENT9)) == 0) {
+					break;
+				}
+				logger::log_format("[VertexDeclaration::Bind] Element {}: ", i);
+				logger::log_format("[VertexDeclaration::Bind]\tStream: {}", elements[i].Stream);
+				logger::log_format("[VertexDeclaration::Bind]\tOffset: {}", elements[i].Offset);
+				logger::log_format("[VertexDeclaration::Bind]\tType: {}", type_to_str(elements[i].Type));
+				logger::log_format("[VertexDeclaration::Bind]\tUsage: {}", usage_to_str(elements[i].Usage));
+				logger::log_format("[VertexDeclaration::Bind]\tUsageIndex: {}", elements[i].UsageIndex);
+			}
+		}
+		*/
+	}
+};
+
+DefineInlineHook(HandleHudPositionMulti) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		if ((ctx.eax.unsigned_integer & 0x10000) != 0) {
+			void* _inst = operator_new(0x74);
+			HudPosition_Multi_HudPosition_Multi(_inst, ctx.edx.unsigned_integer + 0x5C, *reinterpret_cast<std::uint32_t*>(ctx.edx.unsigned_integer + 0x9c));
+			*reinterpret_cast<void**>(ctx.edx.unsigned_integer + 0x34) = _inst;
+		}
+	}
+};
+
+// https://stackoverflow.com/questions/36543301/detecting-windows-10-version
+RTL_OSVERSIONINFOW windows_version() {
+	HMODULE ntdll = ::GetModuleHandleW(L"ntdll.dll");
+	if (ntdll != nullptr) {
+		auto rtl_get_version = reinterpret_cast<NTSTATUS(WINAPI*)(PRTL_OSVERSIONINFOW)>(GetProcAddress(ntdll, "RtlGetVersion"));
+		if (rtl_get_version != nullptr) {
+			RTL_OSVERSIONINFOW info = { 0 };
+			info.dwOSVersionInfoSize = sizeof(info);
+			if (rtl_get_version(&info) == 0) {
+				return info;
+			}
+		}
+	}
+	return RTL_OSVERSIONINFOW{};
+}
+
+// https://github.com/hedge-dev/UnleashedRecomp/blob/main/UnleashedRecomp/ui/game_window.cpp
+DefineInlineHook(DarkModeWindowTitle) {
+	static void _cdecl callback(sunset::InlineCtx& ctx) {
+		RTL_OSVERSIONINFOW version = windows_version();
+		if (version.dwMajorVersion >= 10 && version.dwBuildNumber >= 17763) {
+			const std::uint32_t use_immersive_dark_mode = 1;
+			DwmSetWindowAttribute(*reinterpret_cast<HWND*>(ctx.edx.unsigned_integer + 0x4), version.dwBuildNumber >= 18985 ? DWMWA_USE_IMMERSIVE_DARK_MODE : 19, &use_immersive_dark_mode, sizeof(use_immersive_dark_mode));
+		}
+	}
+};
+
+#ifdef _DEBUG
+std::chrono::time_point<std::chrono::system_clock> start_time{};
+#endif
+
+extern "C" void __stdcall Pentane_Main() {
+#ifdef _DEBUG
+	start_time = std::chrono::system_clock::now();
+#endif
 	// FIXME: link against Pentane.lib properly instead of this bullshit!!!!
 	Pentane_LogUTF8 = reinterpret_cast<void(*)(PentaneCStringView*)>(GetProcAddress(GetModuleHandleA("Pentane.dll"), "Pentane_LogUTF8"));
 	wchar_t exe_name[1024];
@@ -873,23 +1033,47 @@ extern "C" void __stdcall Pentane_Main() {
 	if (IS_PC) {
 		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game (PC)...");
 		/* DEBUGGING HOOKS START */
-		// ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
-		// CallFlashFunction::install_at_ptr(0x010dae50);
-		// CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
+		ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
+		CallFlashFunction::install_at_ptr(0x010dae50);
+		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
 		// CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
+		// HandleInputHook::install_at_ptr(0x010db200);
+		// GetMinMaxPlayer::install_at_ptr(0x010db30e);
+		// init_message_logger_pc();
 		/* DEBUGGING HOOKS END */
 	}
 	else {
 		/* DEBUGGING HOOKS START */
-		// ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
-		// CallFlashFunction::install_at_ptr(0x01168710);
+		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
+		CallFlashFunction::install_at_ptr(0x01168710);
 		// CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
 		// CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
+		// SetVolumeLogger::install_at_ptr(0x007e0c30);
+		// HandleInputHook::install_at_ptr(0x01168be0);
+		// GetMinMaxPlayer::install_at_ptr(0x01168cee);
+		CheckVertDecl::install_at_ptr(0x0085227d);
+		ElementTypeGetter::install_at_ptr(0x00829520);
+		// AsBind::install_at_ptr(0x0085274c);
+		// init_message_logger_arcade();
 		/* DEBUGGING HOOKS END */
+
+		// Change the window title from Octane2 Renderer Window -> Cars 2: Arcade
+		char window_title[] = "Cars 2: Arcade";
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0161dd9c), sizeof(window_title), sunset::utils::Perm::ReadWrite);
+		std::memcpy(reinterpret_cast<void*>(0x0161dd9c), window_title, sizeof(window_title));
+
+		// Allows the window's title bar to properly respond to system-wide Dark Mode.
+		DarkModeWindowTitle::install_at_ptr(0x00834b08);
 
 		// Set's ArcadeManager's initial VideoState to 16 (GAME_START), in order to force the game to skip all intro cutscenes.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x004512ad), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<char*>(0x004512ad) = 16;
+
+		// Kills the 16s timer for the car select and track select screens.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004bc7d4), 4);
+		sunset::inst::nop(reinterpret_cast<void*>(0x004bc4f3), 4);
+		sunset::inst::nop(reinterpret_cast<void*>(0x004bbbfe), 4);
+		sunset::inst::nop(reinterpret_cast<void*>(0x004bbd1f), 8);
 
 		// Replaces a call to CMessageDispatcher::SendMessageToAll that shuts off the Globe for a call to CarsFrontEnd::SetScreen to allow the game to boot directly to the title screen.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004ba81c), 19);
@@ -1039,7 +1223,21 @@ extern "C" void __stdcall Pentane_Main() {
 		// Sets the random seed to zero instead of the system time.
 		SRandHook::install_at_ptr(0x00450c48);
 #endif
-		// ForceEnableNetAndSetMachineId::install_at_ptr(0x00450791);
+		// Fixes an issue where the game would not correctly handle the `FlashMovieMultiInputEnabled` flash function.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0116A31B), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x0116A31B) = 1;
+
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x004bc9c7), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x004bc9c7) = 0xFF;
+
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x004b8772), 1, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uint8_t*>(0x004b8772) = 0;
+
+		sunset::inst::jmp(reinterpret_cast<void*>(0x00815fb0), BeginInput);
+
+		// Fixes an issue where Arcade would ignore the HudPosition_Multi flag in PlayerHud::Init.
+		HandleHudPositionMulti::install_at_ptr(0x0054cf1a);
+
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }

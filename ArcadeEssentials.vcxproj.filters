@@ -32,6 +32,15 @@
     <Filter Include="Source\Game\Physics">
       <UniqueIdentifier>{8d87ab73-7620-44d6-96ac-22572b24c0e7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Game\Input">
+      <UniqueIdentifier>{043ad898-50f4-4578-9510-94404d2ee3a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Patch\Input">
+      <UniqueIdentifier>{d5338d8b-d4ad-402d-8900-f89e4ce9efd7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Patch\Private">
+      <UniqueIdentifier>{b90dfcd3-4138-472c-bebb-5388cdbb9db4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="source\main.cpp">
@@ -51,6 +60,15 @@
     </ClCompile>
     <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp">
       <Filter>Patch</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Game\Input\SystemInputDriver.cpp">
+      <Filter>Source\Game\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Input\WindowsSystemInputDriver.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Game\Input\ControllerInputDriver.cpp">
+      <Filter>Source\Game\Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -144,10 +162,25 @@
     <ClInclude Include="source\Game\Components\CarsVehiclePlayer.hpp">
       <Filter>Source\Game\Components</Filter>
     </ClInclude>
+    <ClInclude Include="source\Game\Input\SystemInputDriver.hpp">
+      <Filter>Source\Game\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\WindowsSystemInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Input\ControllerInputDriver.hpp">
+      <Filter>Source\Game\Input</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="plugin.def">
       <Filter>Source</Filter>
+    </None>
+    <None Include="source\Patch\Private\Testing.inl">
+      <Filter>Patch\Private</Filter>
+    </None>
+    <None Include="source\Patch\Private\MessageLogging.inl">
+      <Filter>Patch\Private</Filter>
     </None>
   </ItemGroup>
 </Project>
