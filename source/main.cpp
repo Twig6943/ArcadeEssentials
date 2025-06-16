@@ -1238,6 +1238,10 @@ extern "C" void __stdcall Pentane_Main() {
 		// Fixes an issue where Arcade would ignore the HudPosition_Multi flag in PlayerHud::Init.
 		HandleHudPositionMulti::install_at_ptr(0x0054cf1a);
 
+		// Removes the ability to toggle between exclusive fullscreen and windowed mode.
+		// We do this because the original games' implementation is very error-prone.
+		sunset::inst::nop(reinterpret_cast<void*>(0x00833268), 5);
+
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	}
 }
