@@ -307,6 +307,9 @@ DefineReplacementHook(OnConfirmHook) {
 			else if (selected_menu == "FE_MM_Extras") {
 				_CarsFrontEnd_SetScreen(_this, MainMenu_Extras, _selected_menu, true);
 			}
+			else if (selected_menu == "FE_MM_WOC") {
+				_CarsFrontEnd_SetScreen(_this, WorldOfCars, _selected_menu, true);
+			}
 			if (*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xE4) != 0) {
 				InitClearanceLevelData(*reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xE4));
 			}
@@ -1242,6 +1245,20 @@ extern "C" void __stdcall Pentane_Main() {
 		// We do this because the original games' implementation is very error-prone.
 		sunset::inst::nop(reinterpret_cast<void*>(0x00833268), 5);
 
+		// Allows the FE_MM_WOC menu to appear in FrontEnd.
+		sunset::inst::nop(reinterpret_cast<void*>(0x004bf0fa), 7);
+
+		/*
+		// Adds Win32Wii_Scn_ExitToWindows to the pause menu.
+		static const char PAUSE_MENU_OPTIONS_LIST_WITH_RESTART[] = "IG_PA_Resume,IG_PA_Restart,IG_PA_Exit,Win32Wii_Scn_ExitToWindows";
+		static const char PAUSE_MENU_OPTIONS_LIST[] = "IG_PA_Resume,IG_PA_Exit,Win32Wii_Scn_ExitToWindows";
+		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0309), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST_WITH_RESTART));
+		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0302), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST));
+		*/
+
+		// Prevents the game from multiplying camera distance values by 0.75.
+		sunset::inst::nop(reinterpret_cast<void*>(0x0049e05c), 8);
+
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
-	}
+	} 
 }
