@@ -49,6 +49,7 @@ inline auto FUN_0080df70 = (void(__thiscall*)(std::uintptr_t))(0x0080df70);
 inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
 inline auto operator_new = (void*(_cdecl*)(std::size_t))(0x007b1650);
 inline auto HudPosition_Multi_HudPosition_Multi = (void*(__thiscall*)(void*, std::uint32_t, std::uint32_t))(0x0054b220);
+inline auto ScaleformValueDestructor = (void*(__thiscall*)(void*))(0x005fb740);
 
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
@@ -1019,6 +1020,30 @@ DefineInlineHook(DarkModeWindowTitle) {
 	}
 };
 
+DefineInlineHook(GetTypeCCI) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		char* screen_type = *reinterpret_cast<char**>(ctx.ebp.unsigned_integer + 0xC);
+		if (_stricmp(screen_type, "FS") == 0) {
+			*reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x10) = 0;
+		}
+		else if (_stricmp(screen_type, "HH") == 0) {
+			*reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x10) = 1;
+		}
+		else if (_stricmp(screen_type, "HHHW") == 0) {
+			*reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x10) = 2;
+		}
+		else {
+			*reinterpret_cast<int*>(ctx.ebp.unsigned_integer - 0x10) = 0;
+		}
+	}
+};
+
+DefineInlineHook(FixDefaultDistance) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		*reinterpret_cast<std::uint32_t*>(ctx.eax.unsigned_integer + 0x260) = *reinterpret_cast<std::uint32_t*>(ctx.ebp.unsigned_integer - 0x24);
+	}
+};
+
 #ifdef _DEBUG
 std::chrono::time_point<std::chrono::system_clock> start_time{};
 #endif
@@ -1260,7 +1285,38 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Prevents the game from multiplying camera distance values by 0.75.
 		sunset::inst::nop(reinterpret_cast<void*>(0x0049e05c), 8);
+		// Prevents the game from clamping the camera distance to 7.0.
+		sunset::inst::nop(reinterpret_cast<void*>(0x0049e037), 5);
 
+		// Changes the default camera distances.
+		static const float FIVE = 5.0f;
+		static const float NINE = 9.0f;
+		static const float TEN = 10.0f;
+		static const float FIFTEEN = 15.0f;
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x00489225 + 4), 4, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uintptr_t*>(0x00489225 + 4) = reinterpret_cast<std::uintptr_t>(&FIVE);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0048a20c + 4), 4, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uintptr_t*>(0x0048a20c + 4) = reinterpret_cast<std::uintptr_t>(&FIVE);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x0048b92a + 4), 4, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uintptr_t*>(0x0048b92a + 4) = reinterpret_cast<std::uintptr_t>(&NINE);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x005a07a9 + 4), 4, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uintptr_t*>(0x005a07a9 + 4) = reinterpret_cast<std::uintptr_t>(&TEN);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x00482999 + 4), 4, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uintptr_t*>(0x00482999 + 4) = reinterpret_cast<std::uintptr_t>(&TEN);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x005a07ef + 4), 4, sunset::utils::Perm::ExecuteReadWrite);
+		*reinterpret_cast<std::uintptr_t*>(0x005a07ef + 4) = reinterpret_cast<std::uintptr_t>(&FIFTEEN);
+		FixDefaultDistance::install_at_ptr(0x0048a9cc);
+
+		// Effectively removes the weird FOV scaling by setting the constant to 1.0f.
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x015f21cc), 4, sunset::utils::Perm::ReadWrite);
+		*reinterpret_cast<std::uint32_t*>(0x015f21cc) = 0x3F800000;
+
+		// Allows the game to choose the correct screen type value for CarTypeProperties.
+		GetTypeCCI::install_at_ptr(0x0048b4b9);
+
+		// Technically not needed since MP isn't a thing, but this also (theoretically) would help choose the correct screen type for ScreenTypeProperties.
+		// Additional logic would be needed, however.
+		// sunset::inst::nop(reinterpret_cast<void*>(0x0048b774), 7);
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	} 
 }
