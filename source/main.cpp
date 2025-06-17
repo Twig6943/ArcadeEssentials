@@ -185,11 +185,13 @@ DefineReplacementHook(CarsFrontEnd_GoBack) {
 	}
 };
 
-DefineReplacementHook(RegisterGoBack) {
+DefineReplacementHook(RegisterMissingFlashFuncs) {
 	static void __fastcall callback(std::uintptr_t _this) {
 		GameSpecificFlashImpl* impl = reinterpret_cast<GameSpecificFlashImpl*>(_this + 4);
 		GameSpecificFlashFunction* _callback = reinterpret_cast<GameSpecificFlashFunction*>((*reinterpret_cast<uintptr_t*>(_this + 0x3C)) + 0x258);
 		impl->SetFlashVariableFunc("GoBack", SetFlashVariDef::ArgumentType::Null, _callback);
+		_callback = reinterpret_cast<GameSpecificFlashFunction*>((*reinterpret_cast<uintptr_t*>(_this + 0x3C)) + 0x1F8);
+		impl->SetFlashVariableFunc("GetSpyPoints", SetFlashVariDef::ArgumentType::Number, _callback);
 		original(_this);
 	}
 };
@@ -1092,8 +1094,8 @@ extern "C" void __stdcall Pentane_Main() {
 		// No-ops the code for menu state UnkMenuEmpty that forces the machine into ExitToWindows.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004c170f), 14);
 
-		// Registers the otherwise-missing `GoBack` callback inside CarsFrontEndFlashCallbacks::FrontendFlashFunctions::SetupFlashFunctions.
-		RegisterGoBack::install_at_ptr(0x004c93e0);
+		// Registers the otherwise-missing `GoBack` and `GetSpyPoints` callbacks inside CarsFrontEndFlashCallbacks::FrontendFlashFunctions::SetupFlashFunctions.
+		RegisterMissingFlashFuncs::install_at_ptr(0x004c93e0);
 		
 		// Implements most of the logic for transitioning from screen to screen.
 		OnConfirmHook::install_at_ptr(0x004be010);
