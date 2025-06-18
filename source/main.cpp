@@ -847,8 +847,8 @@ DefineInlineHook(FixTurboUI) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
 		std::uintptr_t* inst = *reinterpret_cast<std::uintptr_t**>(ctx.ebp.unsigned_integer - 0x18);
 		Genie::String* button_turbo = reinterpret_cast<Genie::String*>(ctx.ebp.unsigned_integer - 0x3C);
-		auto func = *reinterpret_cast<void(__thiscall**)(void*, Genie::String*, const char*, const char*)>(*inst + 0x50);
-		func(inst, button_turbo, "turbo", "normal");
+		auto func = *reinterpret_cast<void(__thiscall**)(void*, char*, const char*, const char*)>(*inst + 0x50);
+		func(inst, button_turbo->data, "turbo", "normal");
 	}
 };
 
