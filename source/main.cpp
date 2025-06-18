@@ -1336,9 +1336,13 @@ extern "C" void __stdcall Pentane_Main() {
 		GetTypeCCI::install_at_ptr(0x0048b4b9);
 
 		// Fixes an issue where UI elements (both 2D and 3D) would render at a higher-than-intended gamma.
-		// I'm not nearly smart enough to know if this is really the "correct" way to do it. But I don't care, it works!s
+		// I'm not nearly smart enough to know if this is really the "correct" way to do it. But I don't care, it works!
 		FlashGuiImpRender::install_at_ptr(0x0116da70);
 
+		// Fixes a variety of UI scaling issues for... some reason?
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x01647d44), 8, sunset::utils::Perm::ReadWrite);
+		std::memcpy(reinterpret_cast<void*>(0x01647d44), "XBOX360", 8);
+		
 		// Technically not needed since MP isn't a thing, but this also (theoretically) would help choose the correct screen type for ScreenTypeProperties.
 		// Additional logic would be needed, however.
 		// sunset::inst::nop(reinterpret_cast<void*>(0x0048b774), 7);
