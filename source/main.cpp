@@ -1044,6 +1044,27 @@ DefineInlineHook(FixDefaultDistance) {
 	}
 };
 
+DefineReplacementHook(FlashGuiImpRender) {
+	static void _fastcall callback(std::uintptr_t _this, std::uintptr_t edx, void* pMovieView, void* pTexture, void* movieInfo, float x, float y, float w, float h) {
+		auto* device = *reinterpret_cast<IDirect3DDevice9Ex**>(0x01906334);
+		// Backup all the SrgbTexture values for each sampler.
+		std::array<unsigned long, 16> srgb_sampler_state_backup{};
+		for (std::size_t i = 0; i < 16; i++) {
+			device->GetSamplerState(0, D3DSAMP_SRGBTEXTURE, &srgb_sampler_state_backup[i]);
+		}
+		// Force SrgbTexture to 0 before rendering the UI.
+		for (std::size_t i = 0; i < 16; i++) {
+			device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, 0);
+		}
+		original(_this, edx, pMovieView, pTexture, movieInfo, x, y, w, h);
+		// Restore the samplers back to their original state.
+		for (std::size_t i = 0; i < 16; i++) {
+			device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, srgb_sampler_state_backup[i]);
+		}
+	}
+};
+
+
 #ifdef _DEBUG
 std::chrono::time_point<std::chrono::system_clock> start_time{};
 #endif
@@ -1313,6 +1334,10 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Allows the game to choose the correct screen type value for CarTypeProperties.
 		GetTypeCCI::install_at_ptr(0x0048b4b9);
+
+		// Fixes an issue where UI elements (both 2D and 3D) would render at a higher-than-intended gamma.
+		// I'm not nearly smart enough to know if this is really the "correct" way to do it. But I don't care, it works!s
+		FlashGuiImpRender::install_at_ptr(0x0116da70);
 
 		// Technically not needed since MP isn't a thing, but this also (theoretically) would help choose the correct screen type for ScreenTypeProperties.
 		// Additional logic would be needed, however.
