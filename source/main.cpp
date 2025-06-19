@@ -1064,6 +1064,32 @@ DefineReplacementHook(FlashGuiImpRender) {
 	}
 };
 
+struct ScaleformViewport {
+	int bufferWidth;
+	int bufferHeight;
+	int left;
+	int top;
+	int width;
+	int height;
+	int scissorLeft;
+	int scissorRight;
+	int scissorWidth;
+	int scissorHeight;
+	float _unk;
+	float _unk2;
+	int flags;
+};
+
+static_assert(sizeof(ScaleformViewport) == 0x34);
+
+DefineInlineHook(AdjustScaleformViewport) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		ScaleformViewport* view = reinterpret_cast<ScaleformViewport*>(ctx.ecx.unsigned_integer);
+		if (view->bufferHeight > 720.0) {
+			view->_unk = 720.0f / static_cast<float>(view->bufferHeight);
+		}
+	}
+};
 
 #ifdef _DEBUG
 std::chrono::time_point<std::chrono::system_clock> start_time{};
@@ -1335,17 +1361,22 @@ extern "C" void __stdcall Pentane_Main() {
 		// Allows the game to choose the correct screen type value for CarTypeProperties.
 		GetTypeCCI::install_at_ptr(0x0048b4b9);
 
+		// Technically not needed since MP isn't a thing, but this also (theoretically) would help choose the correct screen type for ScreenTypeProperties.
+		// Additional logic would be needed, however.
+		// sunset::inst::nop(reinterpret_cast<void*>(0x0048b774), 7);
+
 		// Fixes an issue where UI elements (both 2D and 3D) would render at a higher-than-intended gamma.
 		// I'm not nearly smart enough to know if this is really the "correct" way to do it. But I don't care, it works!
 		FlashGuiImpRender::install_at_ptr(0x0116da70);
 
-		// Fixes a variety of UI scaling issues for... some reason?
+		// Forces the game to use XBOX360 `.dct` files instead of WIN32 ones.
+		// FIXME: We might need to revert this later.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x01647d44), 8, sunset::utils::Perm::ReadWrite);
 		std::memcpy(reinterpret_cast<void*>(0x01647d44), "XBOX360", 8);
 		
-		// Technically not needed since MP isn't a thing, but this also (theoretically) would help choose the correct screen type for ScreenTypeProperties.
-		// Additional logic would be needed, however.
-		// sunset::inst::nop(reinterpret_cast<void*>(0x0048b774), 7);
+		// Fixes UI scaling at resolutions higher than 720p.
+		AdjustScaleformViewport::install_at_ptr(0x0116e28e);
+		
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	} 
 }
