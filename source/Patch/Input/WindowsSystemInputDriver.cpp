@@ -16,6 +16,7 @@
 inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
 inline auto EnumJoysticks = (int(__stdcall*)(LPCDIDEVICEINSTANCEW, void*))(0x008162f0);
 inline auto operator_new = (void* (_cdecl*)(std::size_t))(0x007b1650);
+inline auto operator_delete = (void(_cdecl*)(void*))(0x007b1850);
 inline auto XInputInputDriver_XInputInputDriver = (ControllerInputDriver*(__thiscall*)(ControllerInputDriver*, int))(0x00814480);
 
 std::atomic<bool> FIRST_INIT = true;
@@ -24,14 +25,78 @@ std::atomic<std::uint32_t> LAST_DI_CHECK_TIMESTAMP = 0;
 std::atomic<std::uint32_t> LAST_XI_CHECK_TIMESTAMP = 0;
 std::atomic<HCMNOTIFICATION> DI_CHECK_NOTIFICATION_HANDLE{};
 
+void BumpKBMToSlot0(WindowsSystemInputDriver* _this) {
+	int kbm = -1;
+	for (int i = 0; i < 11; i++) {
+		if (_this->controller[i] != nullptr) {
+			std::uintptr_t vt = *reinterpret_cast<std::uintptr_t*>(_this->controller[i]);
+			// Check for the KeyControllerInputDriver vtable
+			if (vt == 0x01617E7C) {
+				kbm = i;
+			}
+		}
+	}
+	if (kbm != -1) {
+		logger::log_format("[WindowsSystemInputDriver::BeginInput] Bumped Keyboard to 0!");
+		ControllerInputDriver* oldPlayerOne = _this->controller[0];
+		_this->controller[0] = _this->controller[kbm];
+		_this->controller[kbm] = oldPlayerOne;
+	}
+	else {
+		logger::log_format("[WindowsSystemInputDriver::BeginInput] Unable to find Keyboard Controller!");
+	}
+}
+
+void OnXInputControllerRemoved(WindowsSystemInputDriver* _this, std::uint32_t id) {
+	for (int i = 0; i < 11; i++) {
+		if (_this->controller[i] != nullptr) {
+			std::uintptr_t vt = *reinterpret_cast<std::uintptr_t*>(_this->controller[i]);
+			// Check for the XInputInputDriver vtable
+			if (vt == 0x01617F94) {
+				std::uint32_t currentId = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uintptr_t>(_this->controller[i]) + 0x26C);
+				if (currentId == id) {
+					logger::log_format("[WindowsSystemInputDriver::BeginInput] XUser Disconnected! ID: {}", id);
+					operator_delete(_this->controller[i]);
+					_this->controller[i] = nullptr;
+					_this->controllers--;
+					if (i == 0) {
+						BumpKBMToSlot0(_this);
+					}
+				}
+			}
+		}
+	}
+}
+
 void AddXInputController(WindowsSystemInputDriver* _this, std::uint32_t id) {
+	/*
+	for (int i = 0; i < 11; i++) {
+		if (_this->controller[i] != nullptr) {
+			logger::log_format("[Controller States] {}", *reinterpret_cast<std::uintptr_t*>(_this->controller[i]));
+		}
+		else {
+			logger::log_format("[Controller States] {}", reinterpret_cast<std::uintptr_t>(_this->controller[i]));
+		}
+	}
+	*/
 	for (int i = 0; i < 11; i++) {
 		if (_this->controller[i] == nullptr) {
-			_this->controller[i] = reinterpret_cast<ControllerInputDriver*>(operator_new(0x4e78));
-			XInputInputDriver_XInputInputDriver(_this->controller[i], id);
-			logger::log_format("[WindowsSystemInputDriver::BeginInput] Found new XInput controller! ID: {}", id);
-			_this->controllers++;
-			return;
+			if (i == 0) {
+				_this->controller[0] = reinterpret_cast<ControllerInputDriver*>(operator_new(0x4e78));
+				XInputInputDriver_XInputInputDriver(_this->controller[0], id);
+				_this->controllers++;
+				logger::log_format("[WindowsSystemInputDriver::BeginInput] Found new XInput controller! ID: {}, Assigned to 0.", id);
+				return;
+			}
+			else {
+				ControllerInputDriver* oldPlayerOne = _this->controller[0];
+				_this->controller[0] = reinterpret_cast<ControllerInputDriver*>(operator_new(0x4e78));
+				XInputInputDriver_XInputInputDriver(_this->controller[0], id);
+				_this->controller[i] = oldPlayerOne;
+				_this->controllers++;
+				logger::log_format("[WindowsSystemInputDriver::BeginInput] Found new XInput controller! ID: {}, Bumped to 0.", id);
+				return;
+			}
 		}
 	}
 }
@@ -103,6 +168,15 @@ void __fastcall BeginInput(WindowsSystemInputDriver* _this) {
 					if (id < 4) {
 						connectedXUsers[id] = true;
 					}
+				}
+			}
+		}
+		// Next, we check to see if any XUsers dropped in the last two seconds.
+		for (int i = 0; i < 4; i++) {
+			if (connectedXUsers[i]) {
+				XINPUT_CAPABILITIES caps{};
+				if (XInputGetCapabilities(i, XINPUT_FLAG_GAMEPAD, &caps) != ERROR_SUCCESS) {
+					OnXInputControllerRemoved(_this, i);
 				}
 			}
 		}

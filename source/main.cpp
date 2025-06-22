@@ -1196,7 +1196,7 @@ extern "C" void __stdcall Pentane_Main() {
 		// CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
 		// HandleInputHook::install_at_ptr(0x010db200);
 		// GetMinMaxPlayer::install_at_ptr(0x010db30e);
-		init_message_logger_pc();
+		// init_message_logger_pc();
 		/* DEBUGGING HOOKS END */
 	}
 	else {
