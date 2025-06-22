@@ -7,7 +7,9 @@
 #include <d3d9.h>
 #include <dwmapi.h>
 #include "pentane.hpp"
+#include "config.hpp"
 #include "Patch/Input/WindowsSystemInputDriver.hpp"
+#include "Patch/OptionFlashCallbacks.hpp"
 #include "Game/GameSpecificFlashImpl.hpp"
 #include "Game/Genie/String.hpp"
 #include "Game/GameProgressionManager.hpp"
@@ -49,7 +51,6 @@ inline auto FUN_0080df70 = (void(__thiscall*)(std::uintptr_t))(0x0080df70);
 inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
 inline auto operator_new = (void*(_cdecl*)(std::size_t))(0x007b1650);
 inline auto HudPosition_Multi_HudPosition_Multi = (void*(__thiscall*)(void*, std::uint32_t, std::uint32_t))(0x0054b220);
-inline auto ScaleformValueDestructor = (void*(__thiscall*)(void*))(0x005fb740);
 
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
@@ -291,6 +292,9 @@ DefineReplacementHook(OnConfirmHook) {
 			}
 			else if (selected_menu == "FE_EX_Cheats") {
 				_CarsFrontEnd_SetScreen(_this, Extras_Cheats, nullptr, true);
+			}
+			else if (selected_menu == "FE_EX_Graphics") {
+				_CarsFrontEnd_SetScreen(_this, Extras_Options, _selected_menu, true);
 			}
 			break;
 
@@ -577,9 +581,47 @@ DefineReplacementHook(CallFlashVariableFuncHook) {
 	}
 };
 
+static bool IN_APPLY_SETTINGS = false;
+
 DefineReplacementHook(ExternalInterfaceHandler_Callback) {
 	static void __fastcall callback(void* _this, uintptr_t edx, struct Movie* movie, char* method, void* args, unsigned int arg_count) {
 		logger::log_format("[Flash::Movie::ExternalInterfaceHandler::Callback] {}", method);
+		if (method != nullptr && !IS_PC) {
+			if (IN_APPLY_SETTINGS && _stricmp(method, "GetMenuOptionsList") == 0) {
+				HandleGetMenuOptionsList(movie);
+				return;
+			}
+			if (IN_APPLY_SETTINGS && _stricmp(method, "SelectOption") == 0) {
+				HandleSelectOption(movie);
+				IN_APPLY_SETTINGS = false;
+				return;
+			}
+			if (_stricmp(method, "GetAllResolutions") == 0) {
+				HandleGetAllResolutions(movie);
+				return;
+			}
+			else if (_stricmp(method, "GetCurrResolution") == 0) {
+				HandleGetCurrResolution(movie);
+				return;
+			}
+			else if (_stricmp(method, "GetCurrGraphicType") == 0) {
+				HandleGetCurrGraphicType(movie);
+				return;
+			}
+			else if (_stricmp(method, "SetCurrGraphicType") == 0) {
+				HandleSetCurrGraphicType(movie, std::bit_cast<float>(reinterpret_cast<unsigned int*>(args)[2]));
+				return;
+			}
+			else if (_stricmp(method, "PopupMessage") == 0) {
+				HandlePopupMessage(movie);
+				IN_APPLY_SETTINGS = true;
+				return;
+			}
+			else if (_stricmp(method, "SetCurrResolution") == 0) {
+				HandleSetCurrResolution(movie, std::bit_cast<float>(reinterpret_cast<unsigned int*>(args)[2]));
+				return;
+			}
+		}
 		original(_this, edx, movie, method, args, arg_count);
 	}
 };
@@ -1015,7 +1057,43 @@ DefineInlineHook(DarkModeWindowTitle) {
 		RTL_OSVERSIONINFOW version = windows_version();
 		if (version.dwMajorVersion >= 10 && version.dwBuildNumber >= 17763) {
 			const std::uint32_t use_immersive_dark_mode = 1;
-			DwmSetWindowAttribute(*reinterpret_cast<HWND*>(ctx.edx.unsigned_integer + 0x4), version.dwBuildNumber >= 18985 ? DWMWA_USE_IMMERSIVE_DARK_MODE : 19, &use_immersive_dark_mode, sizeof(use_immersive_dark_mode));
+			// DWMWA_USE_IMMERSIVE_DARK_MODE
+			DwmSetWindowAttribute(*reinterpret_cast<HWND*>(ctx.edx.unsigned_integer + 0x4), version.dwBuildNumber >= 18985 ? 20 : 19, &use_immersive_dark_mode, sizeof(use_immersive_dark_mode));
+		}
+	}
+};
+
+DefineInlineHook(CheckForGraphicsMenu) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		std::uintptr_t _this = *reinterpret_cast<std::uintptr_t*>(ctx.ebp.unsigned_integer - 0x2F4);
+		const char* _selected_menu = *reinterpret_cast<const char**>(_this + 0x40C);
+		if (_selected_menu != nullptr) {
+			if (_stricmp(_selected_menu, "FE_EX_Graphics") == 0) {
+				*reinterpret_cast<const char**>(ctx.esp.unsigned_integer) = "Win32Wii_Scn_Item_Resolution,Win32Wii_Scn_GraphicQuality";
+			}
+		}
+	}
+};
+
+DefineInlineHook(CheckForGraphicsMenu2) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		const char* _selected_menu = *reinterpret_cast<const char**>(ctx.eax.unsigned_integer + 0x40C);
+		if (_selected_menu != nullptr) {
+			if (_stricmp(_selected_menu, "FE_EX_Graphics") == 0) {
+				*reinterpret_cast<const char**>(ctx.esp.unsigned_integer) = "text,text";
+			}
+		}
+	}
+};
+
+DefineInlineHook(CheckForGraphicsMenu3) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		std::uintptr_t _this = *reinterpret_cast<std::uintptr_t*>(ctx.ebp.unsigned_integer + -0x184);
+		const char* _selected_menu = *reinterpret_cast<const char**>(_this + 0x40C);
+		if (_selected_menu != nullptr) {
+			if (_stricmp(_selected_menu, "FE_EX_Graphics") == 0) {
+				*reinterpret_cast<const char**>(ctx.ebp.unsigned_integer + -0x14) = "pc_graphic_setting";
+			}
 		}
 	}
 };
@@ -1101,6 +1179,8 @@ extern "C" void __stdcall Pentane_Main() {
 #endif
 	// FIXME: link against Pentane.lib properly instead of this bullshit!!!!
 	Pentane_LogUTF8 = reinterpret_cast<void(*)(PentaneCStringView*)>(GetProcAddress(GetModuleHandleA("Pentane.dll"), "Pentane_LogUTF8"));
+	Pentane_IsWindowedModeEnabled = reinterpret_cast<int(*)()>(GetProcAddress(GetModuleHandleA("Pentane.dll"), "Pentane_IsWindowedModeEnabled"));
+	
 	wchar_t exe_name[1024];
 	GetModuleFileNameW(nullptr, exe_name, 1024);
 	PathStripPathW(exe_name);
@@ -1116,10 +1196,27 @@ extern "C" void __stdcall Pentane_Main() {
 		// CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
 		// HandleInputHook::install_at_ptr(0x010db200);
 		// GetMinMaxPlayer::install_at_ptr(0x010db30e);
-		// init_message_logger_pc();
+		init_message_logger_pc();
 		/* DEBUGGING HOOKS END */
 	}
 	else {
+		if (!GLOBAL_CONFIG->read()) {
+			logger::log_format("[ArcadeEssentials::AEConfig::read] `settings.toml` is missing! VSync will be enabled, and the game window will attempt to match 1280x720.");
+			GLOBAL_CONFIG->finalize();
+		}
+		if (GLOBAL_CONFIG->vsync) {
+			// Set the presentation interval to D3DPRESENT_INTERVAL_ONE if vertical sync is enabled in `settings.toml`.
+			sunset::utils::set_permission(reinterpret_cast<void*>(0x008340f7 + 6), 4, sunset::utils::Perm::ExecuteReadWrite);
+			*reinterpret_cast<std::uint32_t*>(0x008340f7 + 6) = D3DPRESENT_INTERVAL_ONE;
+		}
+		if (Pentane_IsWindowedModeEnabled() == 0) {
+ 			// Set the window dimensions to whatever the user set in `settings.toml`, if we're running in exclusive fullscreen.
+			sunset::utils::set_permission(reinterpret_cast<void*>(0x00d70b51), 4, sunset::utils::Perm::ExecuteReadWrite);
+			*reinterpret_cast<std::uint32_t*>(0x00d70b51) = static_cast<std::uint32_t>(GLOBAL_CONFIG->window_width);
+			sunset::utils::set_permission(reinterpret_cast<void*>(0x00d70b58), 4, sunset::utils::Perm::ExecuteReadWrite);
+			*reinterpret_cast<std::uint32_t*>(0x00d70b58) = static_cast<std::uint32_t>(GLOBAL_CONFIG->window_height);
+		}
+
 		/* DEBUGGING HOOKS START */
 		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
 		CallFlashFunction::install_at_ptr(0x01168710);
@@ -1321,14 +1418,19 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Allows the FE_MM_WOC menu to appear in FrontEnd.
 		sunset::inst::nop(reinterpret_cast<void*>(0x004bf0fa), 7);
-
-		/*
+		
 		// Adds Win32Wii_Scn_ExitToWindows to the pause menu.
 		static const char PAUSE_MENU_OPTIONS_LIST_WITH_RESTART[] = "IG_PA_Resume,IG_PA_Restart,IG_PA_Exit,Win32Wii_Scn_ExitToWindows";
 		static const char PAUSE_MENU_OPTIONS_LIST[] = "IG_PA_Resume,IG_PA_Exit,Win32Wii_Scn_ExitToWindows";
 		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0309), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST_WITH_RESTART));
-		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0302), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST));
-		*/
+		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0302), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST));		
+
+		// Adds a new Graphics sub-menu to the Options menu.
+		static const char EXTRAS_OPTIONS_MENU_ITEMS[] = "FE_EX_Options,FE_EX_EnterCode,FE_EX_Credits,FE_EX_Graphics";
+		sunset::inst::push_u32(reinterpret_cast<void*>(0x004bed9b), reinterpret_cast<std::uintptr_t>(&EXTRAS_OPTIONS_MENU_ITEMS));
+		CheckForGraphicsMenu::install_at_ptr(0x004bee93);
+		CheckForGraphicsMenu2::install_at_ptr(0x004cbcda);
+		CheckForGraphicsMenu3::install_at_ptr(0x004c2394);
 
 		// Prevents the game from multiplying camera distance values by 0.75.
 		sunset::inst::nop(reinterpret_cast<void*>(0x0049e05c), 8);
@@ -1360,7 +1462,7 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Allows the game to choose the correct screen type value for CarTypeProperties.
 		GetTypeCCI::install_at_ptr(0x0048b4b9);
-
+		
 		// Technically not needed since MP isn't a thing, but this also (theoretically) would help choose the correct screen type for ScreenTypeProperties.
 		// Additional logic would be needed, however.
 		// sunset::inst::nop(reinterpret_cast<void*>(0x0048b774), 7);
@@ -1373,7 +1475,7 @@ extern "C" void __stdcall Pentane_Main() {
 		// FIXME: We might need to revert this later.
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x01647d44), 8, sunset::utils::Perm::ReadWrite);
 		std::memcpy(reinterpret_cast<void*>(0x01647d44), "XBOX360", 8);
-		
+
 		// Fixes UI scaling at resolutions higher than 720p.
 		AdjustScaleformViewport::install_at_ptr(0x0116e28e);
 		

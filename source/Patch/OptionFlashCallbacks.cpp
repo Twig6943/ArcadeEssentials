@@ -1,113 +1,172 @@
-#include <cstdint>
+#include <iostream>
 #include <utility>
+#include <vector>
+#include <cstdint>
+#include <string>
+#include <d3d9.h>
 #include "../Game/GameSpecificFlashImpl.hpp"
+#include "../config.hpp"
+#include "OptionFlashCallbacks.hpp"
+#include "../Game/Genie/String.hpp"
 
-inline auto GameSpecificFlashImpl_SetFlashVariableFunc = (void(__thiscall*)(class GameSpecificFlashImpl*, const char*, char, void*))(0x01164570);
+inline auto ScaleformValueDestructor = (void* (__thiscall*)(void*))(0x005fb740);
+inline auto ErrorPopup_MarkForClose = (void* (__thiscall*)(std::uintptr_t*))(0x00e9f8d0);
+inline auto Flash_Movie_CallFlashFunction = (void(__cdecl*)(std::uintptr_t, const char*, ...))(0x01168690);
 
-class OptionFlashCallbacks {
-	class GetOptionsList : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SelectOption : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GoBack : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetOptionVal : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetOptionVal : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetOptionsListTypes : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetAllResolutions : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetCurrResolution : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetCurrResolution : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetCurrGraphicType : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetCurrGraphicType : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetCurrLayoutType : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetCurrLayoutType : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetCurrBrightness : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetCurrBrightness : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetKeyFromMapper : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class StartSetKeyInMapper : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetKeyInMapper : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class ResetKeysInMapper : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetTitle : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetItemName : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetAllItems : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class GetCurrItem : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetCurrItem : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class OnPageBack : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class UpdateTriggerByState : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class SetMenuId : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class PopupMessage : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
-	class IsInPause : public GameSpecificFlashFunction { public: OptionFlashCallbacks* callbacks_list = nullptr; virtual void operator()(void*, void*) override; };
+inline std::uintptr_t** g_ErrorPopup = reinterpret_cast<std::uintptr_t**>(0x0192b8b0);
 
-	class FrontendFlashFunctions : public GameSpecificFlashImpl {
-	public:
-		OptionFlashCallbacks* callbacks_list;
-	public:
-		FrontendFlashFunctions();
-		~FrontendFlashFunctions();
-		virtual void SetupFlashFunctions();
-	};
+inline bool windowed_mode() {
+	return *reinterpret_cast<bool*>(*reinterpret_cast<std::uintptr_t*>(0x019062c8) + 0x4E);
+}
 
-	static_assert(sizeof(FrontendFlashFunctions) == 64);
-
-public:
-	void* unk;
-	void* parent_movie;
-	bool unk2;
-	FrontendFlashFunctions flash_functions;
-	GetOptionsList get_options_list;
-	SelectOption select_option;
-	GoBack go_back;
-	GetOptionVal get_option_val;
-	SetOptionVal set_option_val;
-	GetOptionsListTypes get_options_list_types;
-	GetAllResolutions get_all_resolutions;
-	GetCurrResolution get_curr_resolution;
-	SetCurrResolution set_curr_resolution;
-	GetCurrGraphicType get_curr_graphic_type;
-	SetCurrGraphicType set_curr_graphic_type;
-	GetCurrLayoutType get_curr_layout_type;
-	SetCurrLayoutType set_curr_layout_type;
-	GetCurrBrightness get_curr_brightness;
-	SetCurrBrightness set_curr_brightness;
-	GetKeyFromMapper get_key_from_mapper;
-	StartSetKeyInMapper start_set_key_in_mapper;
-	SetKeyInMapper set_key_in_mapper;
-	ResetKeysInMapper reset_keys_in_mapper;
-	GetTitle get_title;
-	GetItemName get_item_name;
-	GetAllItems get_all_items;
-	GetCurrItem get_curr_item;
-	SetCurrItem set_curr_item;
-	OnPageBack on_page_back;
-	UpdateTriggerByState update_trigger_by_state;
-	SetMenuId set_menu_id;
-	PopupMessage popup_message;
-	IsInPause is_in_pause;
-	void* unk3;
-public:
-	OptionFlashCallbacks();
-	~OptionFlashCallbacks();
-	void AttachLayer();
-	void Init(void* _unk1);
+struct Resolution {
+	unsigned int width;
+	unsigned int height;
+	static Resolution current() {
+		bool windowed = *reinterpret_cast<bool*>(*reinterpret_cast<std::uintptr_t*>(0x019062c8) + 0x4E);
+		D3DPRESENT_PARAMETERS* swap_chain_desc = windowed ? reinterpret_cast<D3DPRESENT_PARAMETERS*>(*reinterpret_cast<std::uintptr_t*>(0x019062c8) + 0x80) : reinterpret_cast<D3DPRESENT_PARAMETERS*>(*reinterpret_cast<std::uintptr_t*>(0x019062c8) + 0xB8);
+		return Resolution{ swap_chain_desc->BackBufferWidth, swap_chain_desc->BackBufferHeight };
+	}
+	static Resolution configured() {
+		return Resolution { static_cast<std::uint32_t>(GLOBAL_CONFIG->window_width), static_cast<std::uint32_t>(GLOBAL_CONFIG->window_height) };
+	}
+	bool operator==(const Resolution& other) {
+		if (width == other.width && height == other.height) {
+			return true;
+		}
+		return false;
+	}
 };
 
-static_assert(sizeof(OptionFlashCallbacks) == 0x138);
+static std::vector<Resolution> VALID_TARGETS{};
+static bool VALID_TARGETS_FOUND = false;
 
-GameSpecificFlashImpl::GameSpecificFlashImpl()
-{
+void HandleGetAllResolutions(void* movie) {
+	// Lazy-initialize VALID_TARGETS.
+	if (!VALID_TARGETS_FOUND) {
+		IDirect3D9* d3d = Direct3DCreate9(D3D_SDK_VERSION);
+		if (d3d != nullptr) {
+			for (std::uint32_t i = 0; i < d3d->GetAdapterModeCount(0, D3DFMT_X8R8G8B8); ++i) {
+				D3DDISPLAYMODE mode;
+				if (SUCCEEDED(d3d->EnumAdapterModes(0, D3DFMT_X8R8G8B8, i, &mode))) {
+					Resolution found = { mode.Width, mode.Height };
+					if (std::find(VALID_TARGETS.begin(), VALID_TARGETS.end(), found) == VALID_TARGETS.end()) {
+						VALID_TARGETS.push_back(found);
+					}
+				}
+			}
+			d3d->Release();
+		}
+		else {
+			VALID_TARGETS.push_back(Resolution::configured());
+		}
+		VALID_TARGETS_FOUND = true;
+	}
+
+	// Formulate and return a list of valid resolutions the game will accept.
+	std::string return_string = "";
+	for (std::size_t i = 0; i < VALID_TARGETS.size(); i++) {
+		return_string += std::to_string(VALID_TARGETS[i].width) + "x" + std::to_string(VALID_TARGETS[i].height);
+		if (i != VALID_TARGETS.size() - 1) {
+			return_string += ",";
+		}
+	}
+	// Pass the list to the game through a Scaleform::Gfx::Value.
+	unsigned int data[3] = {};
+	data[1] = 4;
+	data[2] = reinterpret_cast<std::uint32_t>(return_string.data());
+	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	// Set the return value for the Flash function.
+	func(inst, data);
+	ScaleformValueDestructor(data);
+	return;
 }
 
-GameSpecificFlashImpl::~GameSpecificFlashImpl()
-{
+void HandleGetCurrResolution(void* movie) {
+	// It *should* be impossible for `configured` to not be inside the VALID_TARGETS list.
+	Resolution configured{ static_cast<std::uint32_t>(GLOBAL_CONFIG->window_width), static_cast<std::uint32_t>(GLOBAL_CONFIG->window_height) };
+	int index = std::find(VALID_TARGETS.begin(), VALID_TARGETS.end(), configured) - VALID_TARGETS.begin();
+
+	// Pass the resolution index to the game through a Scaleform::Gfx::Value.
+	unsigned int data[3] = {};
+	data[1] = 3;
+	data[2] = std::bit_cast<std::uint32_t>(static_cast<float>(index));
+	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	// Set the return value for the Flash function.
+	func(inst, data);
+	ScaleformValueDestructor(data);
+	return;
 }
 
-void GameSpecificFlashImpl::SetFlashVariableFunc(const char* name, SetFlashVariDef::ArgumentType unk, GameSpecificFlashFunction* callback) {
-	GameSpecificFlashImpl_SetFlashVariableFunc(this, name, std::to_underlying(unk), callback);
+void HandleSetCurrResolution(void* movie, float index) {
+	const auto& new_target = VALID_TARGETS[static_cast<int>(index)];
+	GLOBAL_CONFIG->window_width = new_target.width;
+	GLOBAL_CONFIG->window_height = new_target.height;
+	GLOBAL_CONFIG->finalize();
 }
 
-OptionFlashCallbacks::OptionFlashCallbacks()
-{
+void HandleGetCurrGraphicType(void* movie) {
+	// Pass the 'graphic type index' (really if vsync is enabled)to the game through a Scaleform::Gfx::Value.
+	unsigned int data[3] = {};
+	data[1] = 3;
+	data[2] = std::bit_cast<std::uint32_t>(static_cast<float>(GLOBAL_CONFIG->vsync ? 1 : 0));
+	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	// Set the return value for the Flash function.
+	func(inst, data);
+	ScaleformValueDestructor(data);
 }
 
-OptionFlashCallbacks::~OptionFlashCallbacks()
-{
+void HandleSetCurrGraphicType(void* movie, float vsync) {
+	GLOBAL_CONFIG->vsync = vsync != 0.0f;
+	GLOBAL_CONFIG->finalize();
+}
+
+void HandleGetMenuOptionsList(void* movie) {
+	// Pass the string to the game through a Scaleform::Gfx::Value.
+	unsigned int data[3] = {};
+	data[1] = 4;
+	data[2] = reinterpret_cast<std::uint32_t>("SharedText_OK");
+	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	// Set the return value for the Flash function.
+	func(inst, data);
+	ScaleformValueDestructor(data);
+}
+
+void HandleSelectOption(void* movie) {
+	ErrorPopup_MarkForClose(*g_ErrorPopup);
+	std::uintptr_t front_end = *reinterpret_cast<std::uintptr_t*>(0x0192b8ac);
+	std::uintptr_t _movie = *reinterpret_cast<std::uintptr_t*>(front_end + 0xb8);
+	if (_movie != 0) {
+		Flash_Movie_CallFlashFunction(_movie, "OnMessageOk", nullptr);
+	}
+}
+
+void HandlePopupMessage(void* movie) {
+	std::uintptr_t* inst = *g_ErrorPopup;
+	auto func = *reinterpret_cast<bool(__thiscall**)(std::uintptr_t*, const char*)>(*inst + 0x20);
+	auto func_2 = *reinterpret_cast<bool(__thiscall**)(std::uintptr_t*, const char*, int)>(*inst + 0x24);
+	auto func_3 = *reinterpret_cast<bool(__thiscall**)(std::uintptr_t*, const char*)>(*inst + 0x1C);
+	auto func_4 = *reinterpret_cast<bool(__thiscall**)(std::uintptr_t*, int)>(*inst + 0x14);
+	func(inst, "Win32Wii_Msg_Title");
+	if (windowed_mode()) {
+		func_2(inst, "Win32Wii_Msg_ApplySettings_Windowed", 1);
+	}
+	else {
+		func_2(inst, "Win32Wii_Msg_ApplySettings", 1);
+	}
+	func_3(inst, "SharedText_OK");
+	func_4(inst, 3);
+}
+
+/*
+OptionFlashCallbacks::OptionFlashCallbacks() {
+}
+
+OptionFlashCallbacks::~OptionFlashCallbacks() {
 }
 
 void OptionFlashCallbacks::AttachLayer() {
@@ -155,8 +214,7 @@ OptionFlashCallbacks::FrontendFlashFunctions::FrontendFlashFunctions() {
 	callbacks_list = nullptr;
 }
 
-OptionFlashCallbacks::FrontendFlashFunctions::~FrontendFlashFunctions()
-{
+OptionFlashCallbacks::FrontendFlashFunctions::~FrontendFlashFunctions() {
 }
 
 void OptionFlashCallbacks::FrontendFlashFunctions::SetupFlashFunctions() {
@@ -220,4 +278,4 @@ void OptionFlashCallbacks::UpdateTriggerByState::operator()(void* val, void* mov
 void OptionFlashCallbacks::SetMenuId::operator()(void* val, void* movie) {}
 void OptionFlashCallbacks::PopupMessage::operator()(void* val, void* movie) {}
 void OptionFlashCallbacks::IsInPause::operator()(void* val, void* movie) {}
-
+*/

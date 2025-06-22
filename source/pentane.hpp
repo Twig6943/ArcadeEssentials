@@ -38,6 +38,7 @@ struct PluginInformation {
 static_assert(sizeof(PluginInformation) == 0x400);
 
 extern void(*Pentane_LogUTF8)(PentaneCStringView*);
+extern int(*Pentane_IsWindowedModeEnabled)();
 
 #ifdef _DEBUG
 extern std::chrono::time_point<std::chrono::system_clock> start_time;

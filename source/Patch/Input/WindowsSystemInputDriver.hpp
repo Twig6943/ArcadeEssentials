@@ -27,7 +27,6 @@ public:
 	int lockedControllerIndex[11];
 	int numLockedControllers;
 public:
-
 };
 
 static_assert(sizeof(WindowsSystemInputDriver) == 1120);

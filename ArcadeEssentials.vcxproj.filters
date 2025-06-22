@@ -43,9 +43,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="source\main.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="dependencies\sunset\cpp\sunset.cpp">
       <Filter>Dependencies</Filter>
     </ClCompile>
@@ -69,6 +66,12 @@
     </ClCompile>
     <ClCompile Include="source\Game\Input\ControllerInputDriver.cpp">
       <Filter>Source\Game\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\config.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
+    <ClCompile Include="source\main.cpp">
+      <Filter>Source</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -170,6 +173,12 @@
     </ClInclude>
     <ClInclude Include="source\Game\Input\ControllerInputDriver.hpp">
       <Filter>Source\Game\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\OptionFlashCallbacks.hpp">
+      <Filter>Patch</Filter>
+    </ClInclude>
+    <ClInclude Include="source\config.hpp">
+      <Filter>Source</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

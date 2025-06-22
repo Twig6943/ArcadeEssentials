@@ -1,6 +1,8 @@
 #pragma once
 #include "../Game/CLinearHash.hpp"
 
+inline auto GameSpecificFlashImpl_SetFlashVariableFunc = (void(__thiscall*)(class GameSpecificFlashImpl*, const char*, char, void*))(0x01164570);
+
 struct SetFlashVariDef {
 	enum class ArgumentType : char {
 		Null = 0,
@@ -22,9 +24,13 @@ protected:
 	void* parent_movie;
 	void* unk;
 public:
-	GameSpecificFlashImpl();
-	~GameSpecificFlashImpl();
-	void SetFlashVariableFunc(const char*, enum class SetFlashVariDef::ArgumentType, class GameSpecificFlashFunction*);
+	inline GameSpecificFlashImpl() {
+	}
+	inline ~GameSpecificFlashImpl() {
+	}
+	inline void SetFlashVariableFunc(const char* name, SetFlashVariDef::ArgumentType arg_type, class GameSpecificFlashFunction* callback) {
+		GameSpecificFlashImpl_SetFlashVariableFunc(this, name, std::to_underlying(arg_type), callback);
+	}
 };
 
 static_assert(sizeof(GameSpecificFlashImpl) == 0x38);
