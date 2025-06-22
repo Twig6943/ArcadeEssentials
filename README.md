@@ -27,15 +27,23 @@ Head to the [Releases](https://github.com/itsmeft24/ArcadeEssentials/releases/la
 Note that you **will need [Pentane](https://github.com/high-octane-dev/pentane) installed and properly configured** to install ArcadeEssentials. Full installation and setup tutorials for both *Pentane* and *ArcadeEssentials* can be found on [the high-octane-dev organization website](https://high-octane-dev.github.io/). 
 
 ## Requisite Asset Changes
-It is **highly recommended** that you either modify the following files *or* install an overhaul mod (such as *Cars 2: Arcade Restorations* or *Cars 2: Deluxe*) that includes these changes to obtain the most functional game experience.
+Each release of ArcadeEssentials will include several asset changes to ensure the most functional game experience. It is **highly recommended** that you either install the bundled assets inside ArcadeEssentials' `release.zip`, *or* install an overhaul mod (such as *Cars 2: Arcade Restorations* or *Cars 2: Deluxe*) that includes these changes to obtain the most functional game experience.
+
+To effectively recreate the changes bundled with ArcadeEssentials, this list should prove helpful: 
 - `assets/startup.zip`
   - Replace Arcade's `all.values.aurora` file with one from either the official PC, Xbox 360, or PlayStation 3 releases, to restore the majority of the original game's physics and speed.
 - `assets/startup3.zip`
   - Replace Arcade's `xml/GameStructure.xml` file with one from either the official PC, Xbox 360, or PlayStation 3 releases, to allow for base game missions, maps, free play options, achievements, and AI changes to appear in FrontEnd.
 - `assets/xml/xml.zip`
   - Replace Arcade's entire `xml.zip` package with one from either the official PC, Xbox 360, or PlayStation 3 releases, to restore PC/Console controller button mappings.
+- `assets/ui/qrframe3.png`
+  - Replace this PNG file with one that is completely transparent, to remove the QR code frame.
+- `assets/ui/ui.zip`
+  - Modify the `frontendicons.oct` tupperware file to include both textures and `TexturePool` entries for the `Win32Wii_Scn_ExitToWindows_IA` and `Win32Wii_Scn_ExitToWindows_AC` icons.
+  - Modify the `ingameicons.oct` tupperware file to include both textures and `TexturePool` entries for the `FE_EX_Graphics_IA` and `FE_EX_Graphics_AC` icons.
 - `assets/lang/lang.zip`
   - Modify `english_ntsc_xbox360.dct` and `strings_xbox360.dct` to include the following labels, **removing empty entries as needed**:
+    - `win32wii_scn_exittowindows` - Used for the Exit to Windows option in the Pause menu. (ex. `"Exit to Windows"`)
     - `fe_ex_graphics` - Used for the Graphics Settings menu label in the Options/Extras menu. (ex. `"Graphics"`)
     - `win32wii_scn_graphiclow` - Used for the Graphics Settings menu title. (ex. `"Graphics Settings"`)
     - `win32wii_scn_graphicquality` - Used for the Vertical Sync option label. (ex. `"Vertical Sync"`)
