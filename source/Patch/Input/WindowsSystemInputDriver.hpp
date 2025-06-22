@@ -20,8 +20,8 @@ public:
 	HWND hWnd;
 	short keyToButtonMap[256];
 	int mapEntries;
-	IDirectInputDevice8W* d_pKeyboard;
-	IDirectInputDevice8W* d_pSpaceBall;
+	ControllerInputDriver* d_pKeyboard;
+	ControllerInputDriver* d_pSpaceBall;
 	int controllers;
 	ControllerInputDriver* controller[11];
 	int lockedControllerIndex[11];

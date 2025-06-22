@@ -28,12 +28,8 @@ std::atomic<HCMNOTIFICATION> DI_CHECK_NOTIFICATION_HANDLE{};
 void BumpKBMToSlot0(WindowsSystemInputDriver* _this) {
 	int kbm = -1;
 	for (int i = 0; i < 11; i++) {
-		if (_this->controller[i] != nullptr) {
-			std::uintptr_t vt = *reinterpret_cast<std::uintptr_t*>(_this->controller[i]);
-			// Check for the KeyControllerInputDriver vtable
-			if (vt == 0x01617E7C) {
-				kbm = i;
-			}
+		if (_this->controller[i] != nullptr && _this->controller[i] == _this->d_pKeyboard) {
+			kbm = i;
 		}
 	}
 	if (kbm != -1) {
@@ -47,6 +43,16 @@ void BumpKBMToSlot0(WindowsSystemInputDriver* _this) {
 	}
 }
 
+void DetachSharedController(WindowsSystemInputDriver* _this, ControllerInputDriver* controller) {
+	for (int i = 0; i < 11; i++) {
+		if (_this->controller[i] != nullptr) {
+			if (_this->controller[i]->GetSharedController() == controller) {
+				_this->controller[i]->SetSharedController(nullptr);
+			}
+		}
+	}
+}
+
 void OnXInputControllerRemoved(WindowsSystemInputDriver* _this, std::uint32_t id) {
 	for (int i = 0; i < 11; i++) {
 		if (_this->controller[i] != nullptr) {
@@ -56,6 +62,7 @@ void OnXInputControllerRemoved(WindowsSystemInputDriver* _this, std::uint32_t id
 				std::uint32_t currentId = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uintptr_t>(_this->controller[i]) + 0x26C);
 				if (currentId == id) {
 					logger::log_format("[WindowsSystemInputDriver::BeginInput] XUser Disconnected! ID: {}", id);
+					DetachSharedController(_this, _this->controller[i]);
 					operator_delete(_this->controller[i]);
 					_this->controller[i] = nullptr;
 					_this->controllers--;
@@ -81,9 +88,21 @@ void AddXInputController(WindowsSystemInputDriver* _this, std::uint32_t id) {
 	*/
 	for (int i = 0; i < 11; i++) {
 		if (_this->controller[i] == nullptr) {
+			/*
+			_this->controller[i] = reinterpret_cast<ControllerInputDriver*>(operator_new(0x4e78));
+			XInputInputDriver_XInputInputDriver(_this->controller[i], id);
+			_this->controllers++;
+			_this->d_pKeyboard->SetSharedController(_this->controller[i]);
+			_this->controller[i]->SetSharedController(_this->d_pKeyboard);
+			logger::log_format("[WindowsSystemInputDriver::BeginInput] Found new XInput controller! ID: {}, Assigned to: {}.", id, i);
+			return;
+			*/
+
 			if (i == 0) {
 				_this->controller[0] = reinterpret_cast<ControllerInputDriver*>(operator_new(0x4e78));
 				XInputInputDriver_XInputInputDriver(_this->controller[0], id);
+				// _this->controller[0]->SetSharedController(_this->d_pKeyboard);
+				_this->d_pKeyboard->SetSharedController(_this->controller[0]);
 				_this->controllers++;
 				logger::log_format("[WindowsSystemInputDriver::BeginInput] Found new XInput controller! ID: {}, Assigned to 0.", id);
 				return;
@@ -92,6 +111,8 @@ void AddXInputController(WindowsSystemInputDriver* _this, std::uint32_t id) {
 				ControllerInputDriver* oldPlayerOne = _this->controller[0];
 				_this->controller[0] = reinterpret_cast<ControllerInputDriver*>(operator_new(0x4e78));
 				XInputInputDriver_XInputInputDriver(_this->controller[0], id);
+				// _this->controller[0]->SetSharedController(_this->d_pKeyboard);
+				_this->d_pKeyboard->SetSharedController(_this->controller[0]);
 				_this->controller[i] = oldPlayerOne;
 				_this->controllers++;
 				logger::log_format("[WindowsSystemInputDriver::BeginInput] Found new XInput controller! ID: {}, Bumped to 0.", id);
