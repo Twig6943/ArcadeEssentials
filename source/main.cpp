@@ -586,7 +586,9 @@ static bool IN_APPLY_SETTINGS = false;
 
 DefineReplacementHook(ExternalInterfaceHandler_Callback) {
 	static void __fastcall callback(void* _this, uintptr_t edx, struct Movie* movie, char* method, void* args, unsigned int arg_count) {
+#ifdef _DEBUG
 		logger::log_format("[Flash::Movie::ExternalInterfaceHandler::Callback] {}", method);
+#endif
 		if (method != nullptr && !IS_PC) {
 			if (IN_APPLY_SETTINGS && _stricmp(method, "GetMenuOptionsList") == 0) {
 				HandleGetMenuOptionsList(movie);
@@ -1210,9 +1212,9 @@ extern "C" void __stdcall Pentane_Main() {
 	if (IS_PC) {
 		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game (PC)...");
 		/* DEBUGGING HOOKS START */
-		ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
-		CallFlashFunction::install_at_ptr(0x010dae50);
-		CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
+		// ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
+		// CallFlashFunction::install_at_ptr(0x010dae50);
+		// CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
 		// CarsFrontEnd_GoBack::install_at_ptr(0x00489af0);
 		// HandleInputHook::install_at_ptr(0x010db200);
 		// GetMinMaxPlayer::install_at_ptr(0x010db30e);
@@ -1238,15 +1240,14 @@ extern "C" void __stdcall Pentane_Main() {
 		}
 
 		/* DEBUGGING HOOKS START */
-		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
-		CallFlashFunction::install_at_ptr(0x01168710);
+		// CallFlashFunction::install_at_ptr(0x01168710);
 		// CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
 		// CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
 		// SetVolumeLogger::install_at_ptr(0x007e0c30);
 		// HandleInputHook::install_at_ptr(0x01168be0);
 		// GetMinMaxPlayer::install_at_ptr(0x01168cee);
-		CheckVertDecl::install_at_ptr(0x0085227d);
-		ElementTypeGetter::install_at_ptr(0x00829520);
+		// CheckVertDecl::install_at_ptr(0x0085227d);
+		// ElementTypeGetter::install_at_ptr(0x00829520);
 		// AsBind::install_at_ptr(0x0085274c);
 		// init_message_logger_arcade();
 		/* DEBUGGING HOOKS END */
@@ -1453,6 +1454,7 @@ extern "C" void __stdcall Pentane_Main() {
 		CheckForGraphicsMenu::install_at_ptr(0x004bee93);
 		CheckForGraphicsMenu2::install_at_ptr(0x004cbcda);
 		CheckForGraphicsMenu3::install_at_ptr(0x004c2394);
+		ExternalInterfaceHandler_Callback::install_at_ptr(0x0116a080);
 
 		// Prevents the game from multiplying camera distance values by 0.75.
 		sunset::inst::nop(reinterpret_cast<void*>(0x0049e05c), 8);
