@@ -51,6 +51,7 @@ inline auto FUN_0080df70 = (void(__thiscall*)(std::uintptr_t))(0x0080df70);
 inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
 inline auto operator_new = (void*(_cdecl*)(std::size_t))(0x007b1650);
 inline auto HudPosition_Multi_HudPosition_Multi = (void*(__thiscall*)(void*, std::uint32_t, std::uint32_t))(0x0054b220);
+inline auto FUN_004d0250 = (void(__thiscall*)(std::uintptr_t, int))(0x004d0250);
 
 inline std::uintptr_t* g_PopupCallback = reinterpret_cast<std::uintptr_t*>(0x01929b60);
 inline void** g_PersistentData = reinterpret_cast<void**>(0x01926ef8);
@@ -1063,6 +1064,25 @@ DefineInlineHook(DarkModeWindowTitle) {
 	}
 };
 
+DefineInlineHook(CheckForExitToWindows) {
+	static void _cdecl callback(sunset::InlineCtx& ctx) {
+		const char* _str = *reinterpret_cast<const char**>(ctx.ebp.unsigned_integer - 0x4);
+		if (_stricmp(_str, "Win32Wii_Scn_ExitToWindows") == 0) {
+			FUN_004d0250(*reinterpret_cast<std::uintptr_t*>(*reinterpret_cast<std::uintptr_t*>(ctx.ebp.unsigned_integer - 0xC8) + 4), 2);
+		}
+	}
+};
+
+
+DefineInlineHook(CheckForExitToWindows2) {
+	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		int selected_option = *reinterpret_cast<int*>(*reinterpret_cast<std::uintptr_t*>(ctx.edx.unsigned_integer + 4) + 0x18);
+		if (selected_option == 2) {
+			std::exit(0);
+		}
+	}
+};
+
 DefineInlineHook(CheckForGraphicsMenu) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
 		std::uintptr_t _this = *reinterpret_cast<std::uintptr_t*>(ctx.ebp.unsigned_integer - 0x2F4);
@@ -1424,6 +1444,8 @@ extern "C" void __stdcall Pentane_Main() {
 		static const char PAUSE_MENU_OPTIONS_LIST[] = "IG_PA_Resume,IG_PA_Exit,Win32Wii_Scn_ExitToWindows";
 		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0309), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST_WITH_RESTART));
 		sunset::inst::mov_u32(reinterpret_cast<void*>(0x004d0302), sunset::inst::RegisterIndex::Eax, reinterpret_cast<std::uintptr_t>(&PAUSE_MENU_OPTIONS_LIST));		
+		CheckForExitToWindows::install_at_ptr(0x004d0596);
+		CheckForExitToWindows2::install_at_ptr(0x004d091c);
 
 		// Adds a new Graphics sub-menu to the Options menu.
 		static const char EXTRAS_OPTIONS_MENU_ITEMS[] = "FE_EX_Options,FE_EX_EnterCode,FE_EX_Credits,FE_EX_Graphics";
