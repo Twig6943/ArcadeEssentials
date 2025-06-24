@@ -1002,7 +1002,7 @@ DefineReplacementHook(ElementTypeGetter) {
 DefineInlineHook(AsBind) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
 		auto* decl = reinterpret_cast<IDirect3DVertexDeclaration9*>(ctx.eax.unsigned_integer);
-		if (decl == nullptr || decl == reinterpret_cast<IDirect3DVertexDeclaration9*>(1)) {
+		if (decl == nullptr || reinterpret_cast<std::uintptr_t>(decl) <= 4096) {
 			logger::log_format("[Renderer::VertexDeclaration::Bind] Attempted to bind null VertexDeclaration!");
 			ctx.eax.unsigned_integer = 0;
 		}
@@ -1074,7 +1074,6 @@ DefineInlineHook(CheckForExitToWindows) {
 		}
 	}
 };
-
 
 DefineInlineHook(CheckForExitToWindows2) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
@@ -1212,6 +1211,7 @@ extern "C" void __stdcall Pentane_Main() {
 	if (IS_PC) {
 		logger::log("[ArcadeEssentials::Pentane_Main] WARN: Arcade executable not detected! Assuming Cars 2: The Video Game (PC)...");
 		/* DEBUGGING HOOKS START */
+#ifdef _DEBUG
 		// ExternalInterfaceHandler_Callback::install_at_ptr(0x010dc930);
 		// CallFlashFunction::install_at_ptr(0x010dae50);
 		// CarsFrontEnd_SetScreen::install_at_ptr(0x0048c910);
@@ -1219,6 +1219,7 @@ extern "C" void __stdcall Pentane_Main() {
 		// HandleInputHook::install_at_ptr(0x010db200);
 		// GetMinMaxPlayer::install_at_ptr(0x010db30e);
 		// init_message_logger_pc();
+#endif
 		/* DEBUGGING HOOKS END */
 	}
 	else {
@@ -1240,16 +1241,18 @@ extern "C" void __stdcall Pentane_Main() {
 		}
 
 		/* DEBUGGING HOOKS START */
+#ifdef _DEBUG
 		// CallFlashFunction::install_at_ptr(0x01168710);
 		// CarsFrontEnd_SetScreen::install_at_ptr(0x004c1440);
 		// CarsFrontEnd_GoBack::install_at_ptr(0x004be200);
 		// SetVolumeLogger::install_at_ptr(0x007e0c30);
 		// HandleInputHook::install_at_ptr(0x01168be0);
 		// GetMinMaxPlayer::install_at_ptr(0x01168cee);
-		// CheckVertDecl::install_at_ptr(0x0085227d);
-		// ElementTypeGetter::install_at_ptr(0x00829520);
-		// AsBind::install_at_ptr(0x0085274c);
+		CheckVertDecl::install_at_ptr(0x0085227d);
+		ElementTypeGetter::install_at_ptr(0x00829520);
+		AsBind::install_at_ptr(0x0085274c);
 		// init_message_logger_arcade();
+#endif
 		/* DEBUGGING HOOKS END */
 
 		// Change the window title from Octane2 Renderer Window -> Cars 2: Arcade
