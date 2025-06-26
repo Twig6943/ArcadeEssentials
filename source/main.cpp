@@ -223,6 +223,7 @@ DefineReplacementHook(OnConfirmHook) {
 			*(reinterpret_cast<const char**>(reinterpret_cast<std::uintptr_t>(_this) + 0x598)) = "Click_Select";
 		}
 		bool should_set_screen = false;
+		bool should_play_item_selected = true;
 
 		std::int32_t menu_state = *(reinterpret_cast<std::int32_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xA8));
 		switch (menu_state) {
@@ -235,9 +236,11 @@ DefineReplacementHook(OnConfirmHook) {
 				std::uint32_t array[2] = { 1, 0 };
 				FUN_00ba0870(reinterpret_cast<std::uintptr_t>(_this) + 0x3e8, reinterpret_cast<std::uintptr_t>(&array));
 			}
+			should_play_item_selected = false;
 			break;
 		case AutoSaveWarning:
 			_CarsFrontEnd_SetScreen(_this, TitleMenu, nullptr, true);
+			should_play_item_selected = false;
 			break;
 
 		case TitleMenu:
@@ -255,6 +258,7 @@ DefineReplacementHook(OnConfirmHook) {
 			*reinterpret_cast<bool*>(*g_PopupCallback + 0x10C) = true;
 			_CarsFrontEnd_SetScreen(_this, SaveFileLoading, nullptr, true);
 			*reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0x424) = static_cast<std::uint8_t>(*reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uintptr_t>(*g_GameProgressionManager) + 0x108));
+			should_play_item_selected = false;
 			break;
 		case SaveSlots:
 			{
@@ -278,6 +282,7 @@ DefineReplacementHook(OnConfirmHook) {
 				GameCommon_SetPlayerSfxVolume(*g_Game, *reinterpret_cast<float*>(unk + 8), 0);
 				GameCommon_SetPlayerDialogueVolume(*g_Game, *reinterpret_cast<float*>(unk + 12), 0);
 				_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, true);
+				should_play_item_selected = false;
 			}
 			break;
 
@@ -385,6 +390,7 @@ DefineReplacementHook(OnConfirmHook) {
 			if (*reinterpret_cast<void**>(reinterpret_cast<std::uintptr_t>(_this) + 0xCC) == nullptr) {
 				*reinterpret_cast<void**>(reinterpret_cast<std::uintptr_t>(_this) + 0xCC) = Flash_EngineTextureLoader_LoadTextureSet(engine_texture_loader, oct_name, false, 0);
 			}
+			should_play_item_selected = false;
 		}
 		break;
 
@@ -428,6 +434,7 @@ DefineReplacementHook(OnConfirmHook) {
 					unk5 = unk6;
 				}
 				Flash_Movie_CallFlashFunction(unk_menu, "SetBadgeInfo", 0, localization_label.data, description, static_cast<double>(unk5), static_cast<double>(unk6), buffer);
+				should_play_item_selected = false;
 			}
 			break;
 
@@ -515,6 +522,7 @@ DefineReplacementHook(OnConfirmHook) {
 			if (_stricmp(_selected_menu, "DLC_Connect") == 0) {
 				*(reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x800)) = 1;
 			}
+			should_play_item_selected = false;
 			break;
 
 		case WorldOfCarsConnect:
@@ -526,16 +534,12 @@ DefineReplacementHook(OnConfirmHook) {
 				Genie_String_Assign(dest, _selected_menu);
 				_CarsFrontEnd_SetScreen(_this, GarageDetails, nullptr, true);
 			}
+			should_play_item_selected = false;
 			*(reinterpret_cast<float*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7A4)) = 16.0f; // FIXME
 			*(reinterpret_cast<float*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7A8)) = 8.0f; // FIXME
 			break;
 
 		default:
-			std::uintptr_t movie = *(reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xbc));
-			if (movie != 0) {
-				Flash_Movie_CallFlashFunction(movie, "ItemSelected", 0);
-				*(reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xC0)) = 1;
-			}
 			break;
 		}
 		if (should_set_screen) {
@@ -551,6 +555,11 @@ DefineReplacementHook(OnConfirmHook) {
 			PersistentData_SetGlobal(*g_PersistentData, "ScreenFormat", locked_controllers > 4 ? 1 : locked_controllers);
 			*/
  			_CarsFrontEnd_SetScreen(_this, CarSelect, nullptr, true);
+		}
+		std::uintptr_t movie = *(reinterpret_cast<std::uintptr_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xbc));
+		if (movie != 0 && should_play_item_selected) {
+			Flash_Movie_CallFlashFunction(movie, "ItemSelected", nullptr);
+			*(reinterpret_cast<std::uint8_t*>(reinterpret_cast<std::uintptr_t>(_this) + 0xC0)) = 1;
 		}
 		return;
 
@@ -1146,20 +1155,14 @@ DefineInlineHook(FixDefaultDistance) {
 DefineReplacementHook(FlashGuiImpRender) {
 	static void _fastcall callback(std::uintptr_t _this, std::uintptr_t edx, void* pMovieView, void* pTexture, void* movieInfo, float x, float y, float w, float h) {
 		auto* device = *reinterpret_cast<IDirect3DDevice9Ex**>(0x01906334);
-		// Backup all the SrgbTexture values for each sampler.
-		std::array<unsigned long, 16> srgb_sampler_state_backup{};
-		for (std::size_t i = 0; i < 16; i++) {
-			device->GetSamplerState(0, D3DSAMP_SRGBTEXTURE, &srgb_sampler_state_backup[i]);
-		}
-		// Force SrgbTexture to 0 before rendering the UI.
-		for (std::size_t i = 0; i < 16; i++) {
-			device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, 0);
-		}
+		// Backup the SrgbTexture value for sampler 0.
+		unsigned long srgb_sampler_state_backup = 0;
+		device->GetSamplerState(0, D3DSAMP_SRGBTEXTURE, &srgb_sampler_state_backup);
+		// Force SrgbTexture for sampler 0 to FALSE before rendering the UI.
+		device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, 0);
 		original(_this, edx, pMovieView, pTexture, movieInfo, x, y, w, h);
-		// Restore the samplers back to their original state.
-		for (std::size_t i = 0; i < 16; i++) {
-			device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, srgb_sampler_state_backup[i]);
-		}
+		// Restore sampler 0 back to its original state.
+		device->SetSamplerState(0, D3DSAMP_SRGBTEXTURE, srgb_sampler_state_backup);
 	}
 };
 
