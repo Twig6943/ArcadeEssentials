@@ -1364,7 +1364,7 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::inst::nop(reinterpret_cast<void*>(0x004f75a7), 5);
 		FixRestartVolume::install_at_ptr(0x004f75a7);
 		// Completely stub ArcadeManager::SetVolume.
-		sunset::utils::set_permission(reinterpret_cast<void*>(0x004515e0), 4, sunset::utils::Perm::ReadWrite);
+		sunset::utils::set_permission(reinterpret_cast<void*>(0x004515e0), 4, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint32_t*>(0x004515e0) = 0x900004C2;
 		// Overrides the default volumes used when there is no save file with the maximum values.
 		OverrideDefaultVolume::install_at_ptr(0x00e9b89b);
