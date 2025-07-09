@@ -231,7 +231,8 @@ DefineReplacementHook(OnConfirmHook) {
 			*reinterpret_cast<std::uint8_t*>(g_PopupCallback + 0x131) = 1;
 			if (selected_menu == "SharedText_Yes") {
 				std::exit(0);
-			} else {
+			}
+			else {
 				_CarsFrontEnd_SetScreen(_this, MT_FrontEnd, nullptr, false);
 				std::uint32_t array[2] = { 1, 0 };
 				FUN_00ba0870(reinterpret_cast<std::uintptr_t>(_this) + 0x3e8, reinterpret_cast<std::uintptr_t>(&array));

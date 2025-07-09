@@ -109,11 +109,6 @@ enum ButtonCode {
     BC_BUTTONCODES
 };
 
-struct ButtonState {
-	bool last;
-	bool now;
-};
-
 class SystemInputDriver {
 public:
 	ButtonState state[104];

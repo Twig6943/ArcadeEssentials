@@ -18,6 +18,22 @@ struct Vector3 {
 		z = _z;
 	}
 
+	inline float X() const {
+		return x;
+	}
+
+	inline float Y() const {
+		return y;
+	}
+
+	inline float Z() const {
+		return z;
+	}
+
+	inline float Length() const {
+		return std::sqrt(x * x + y * y + z * z);
+	}
+
 	inline void Normalize() {
 		float norm = std::sqrt(x * x + y * y + z * z);
 		if (norm != 0.0f) {
@@ -25,6 +41,18 @@ struct Vector3 {
 			y /= norm;
 			z /= norm;
 		}
+	}
+
+	inline Vector3 Normalized() const {
+		float norm = std::sqrt(x * x + y * y + z * z);
+		if (norm != 0.0f) {
+			return Vector3{
+				x / norm,
+				y / norm,
+				z / norm
+			};
+		}
+		return *this;
 	}
 
 	static inline float Dot(Vector3 a, Vector3 b) {
