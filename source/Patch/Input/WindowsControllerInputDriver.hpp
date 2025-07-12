@@ -21,12 +21,9 @@ public:
 	WindowsControllerInputDriver(HWND hWnd, IDirectInputDevice8W* joystickDevice, int deviceNumber, const char* pDeviceName);
 
 	bool SetupDevice(HWND hWnd);
-	bool SetupAxis(DWORD diAxis);
-	bool GetProfileButton(const char* buttonName, int* value, char* sMapFileName);
+	int GetProfileButton(const char* buttonName, int* value, char* sMapFileName);
 	bool GetProfileStick(int stick, char* sMapFileName);
-
 	int LoadProfile(int deviceNumber);
-
 
 	virtual ~WindowsControllerInputDriver() override;
 	virtual void Initialize() override;

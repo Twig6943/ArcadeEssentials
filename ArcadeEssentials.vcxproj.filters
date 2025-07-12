@@ -83,7 +83,7 @@
       <Filter>Source\Game\Input</Filter>
     </ClCompile>
     <ClCompile Include="source\Patch\Input\GameCubeInputDriver.cpp">
-      <Filter>Source</Filter>
+      <Filter>Patch\Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

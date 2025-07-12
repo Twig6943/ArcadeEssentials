@@ -1,7 +1,22 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <array>
 #include <io.h>
+#include "../../pentane.hpp"
 #include "WindowsControllerInputDriver.hpp"
+
+inline auto WindowsControllerInputDriver_GetProfileButton = (int(__thiscall*)(WindowsControllerInputDriver*, const char*, int*, char*))(0x00814000);
+
+std::array<std::string_view, 9> c_DefaultAxisName = {
+	"Axis LX",
+	"Axis LY",
+	"Axis LZ",
+	"Axis RX",
+	"Axis RY",
+	"Axis RZ",
+	"slider0",
+	"slider1",
+	"----"
+};
 
 WindowsControllerInputDriver::WindowsControllerInputDriver(HWND hWnd, IDirectInputDevice8W* joystickDevice, int deviceNumber, const char* pDeviceName) {
 	m_device = joystickDevice;
@@ -22,14 +37,128 @@ WindowsControllerInputDriver::WindowsControllerInputDriver(HWND hWnd, IDirectInp
 	}
 }
 
+WindowsControllerInputDriver::~WindowsControllerInputDriver() {
+	if (m_device != nullptr) {
+		m_device->Unacquire();
+		m_device->Release();
+	}
+}
+
+void WindowsControllerInputDriver::Initialize() {
+	if (!m_bInvalidController) {
+		for (auto i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
+			GenerateTransferFunction(m_transferLookup[i], 256, m_initTransferFunction[i], m_initFactor[i], m_initDeadZone[i], m_initClampZone[i]);
+		}
+	}
+}
+
+const char* WindowsControllerInputDriver::DeviceName() const {
+	return m_deviceName;
+}
+
+bool WindowsControllerInputDriver::SetupAxis(AnalogAxis axis, AxesTransferFunction transferFunction, float factor, float deadZonePercent, float clampZonePercent) {
+	GenerateTransferFunction(m_transferLookup[std::to_underlying(transferFunction)], 256, transferFunction, factor, deadZonePercent, clampZonePercent);
+	return true;
+}
+
+bool WindowsControllerInputDriver::Connected() {
+	return true;
+}
+
+void WindowsControllerInputDriver::BeginInput() {
+	if (m_device == nullptr) {
+		return;
+	}
+	
+	if (FAILED(m_device->Poll())) {
+		HRESULT ret = m_device->Acquire();
+		while (ret == DIERR_INPUTLOST) {
+			ret = m_device->Acquire();
+		}
+		return;
+	}
+
+	DIJOYSTATE2 state{};
+	if (FAILED(m_device->GetDeviceState(sizeof(state), &state))) {
+		return;
+	}
+
+	ControllerInputDriver::BeginInput();
+	
+	std::array<int, 8> axis = {
+		state.lX,
+		state.lY,
+		state.lZ,
+		state.lRx,
+		state.lRy,
+		state.lRz,
+		state.rglSlider[0],
+		state.rglSlider[1],
+	};
+
+	for (auto i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
+		if (m_axisMap[i] >= 0) {
+			if (m_axisValid[m_axisMap[i]] == 0) {
+				m_stick[i] = 0.0;
+			}
+			else if (m_invertAxis[i] == false) {
+				m_stick[i] = m_transferLookup[i][axis[m_axisMap[i]]];
+			}
+			else {
+				m_stick[i] = m_transferLookup[i][255 - axis[m_axisMap[i]]];
+			}
+		}
+	}
+
+	std::array<bool, 4> povHat = {};
+	if ((state.rgdwPOV[0] & 0xFFFF) != 0xFFFF) {
+		int pos = state.rgdwPOV[0] / 100;
+		povHat[0] = (pos > 300 || pos < 60);
+		povHat[1] = (pos > 30 && pos < 150);
+		povHat[2] = (pos > 120 && pos < 240);
+		povHat[3] = (pos > 210 && pos < 330);
+	}
+
+	for (auto b = 0; b < std::to_underlying(ControllerButton::Max); b++) {
+		if (m_buttonMap[b] != -1) {
+			if (m_buttonMap[b] >= 0 && m_buttonMap[b] < 100) {
+				SetState(static_cast<ControllerButton>(b), (state.rgbButtons[m_buttonMap[b]] & 0x80) != 0);
+			}
+			else if (m_buttonMap[b] > 0 && m_buttonMap[b] < 1000) {
+				SetState(static_cast<ControllerButton>(b), povHat[m_buttonMap[b] - 100]);
+			}
+			else if (m_buttonMap[b] >= 1000 && m_buttonMap[b] <= 1007) {
+				SetState(static_cast<ControllerButton>(b), (axis[m_buttonMap[b] - 1000] > 128 + 80));
+			}
+			else if (m_buttonMap[b] <= -1000 && m_buttonMap[b] >= -1007) {
+				SetState(static_cast<ControllerButton>(b), (axis[-m_buttonMap[b] - 1000] < 128 - 80));
+			}
+		}
+	}
+}
+
+void WindowsControllerInputDriver::DoneInput() {}
+
+bool WindowsControllerInputDriver::ObserveFocus() {
+	return m_observeFocus;
+}
+
+void WindowsControllerInputDriver::Activate(bool active) {
+	if (m_device == nullptr) {
+		return;
+	}
+	if (active) {
+		m_device->Acquire();
+	}
+	else {
+		m_device->Unacquire();
+	}
+}
+
 bool WindowsControllerInputDriver::SetupDevice(HWND hWnd) {
 	if (FAILED(m_device->EnumObjects(reinterpret_cast<LPDIENUMDEVICEOBJECTSCALLBACKW>(0x00813950), this, DIDFT_ALL))) {
 		return true;
 	}
-	return false;
-}
-
-bool WindowsControllerInputDriver::SetupAxis(DWORD diAxis) {
 	return false;
 }
 
@@ -44,6 +173,7 @@ int WindowsControllerInputDriver::LoadProfile(int deviceNumber) {
 	strcat(sMapFileName, s_buttonMapFile->at(deviceNumber));
 
 	if (_access(sMapFileName, 0) < 0) {
+		logger::log_format("[WindowsControllerInputDriver::LoadProfile] Unable to access folder, aborting...");
 		return 1;
 	}
 
@@ -71,6 +201,7 @@ int WindowsControllerInputDriver::LoadProfile(int deviceNumber) {
 	GetProfileButton("BUTTON_START", &m_buttonMap[std::to_underlying(ControllerButton::Start)], sMapFileName);
 	GetProfileButton("BUTTON_SELECT", &m_buttonMap[std::to_underlying(ControllerButton::Select)], sMapFileName);
 	if (iInvalidKeys > 0) {
+		logger::log_format("[WindowsControllerInputDriver::LoadProfile] Invalid binds, aborting... ({})", iInvalidKeys);
 		return 1;
 	}
 
@@ -79,65 +210,74 @@ int WindowsControllerInputDriver::LoadProfile(int deviceNumber) {
 	}
 
 	for (auto i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
-		GetProfileStick(i, sMapFileName);
+		if (!GetProfileStick(i, sMapFileName)) {
+			logger::log_format("[WindowsControllerInputDriver::LoadProfile] Failed to read axis: {}", i);
+		}
 	}
 
 	return 0;
 }
 
-bool WindowsControllerInputDriver::GetProfileButton(const char* buttonName, int* value, char* sMapFileName) {
-	return false;
+int WindowsControllerInputDriver::GetProfileButton(const char* buttonName, int* value, char* sMapFileName) {
+	return WindowsControllerInputDriver_GetProfileButton(this, buttonName, value, sMapFileName);
 }
+
 bool WindowsControllerInputDriver::GetProfileStick(int stick, char* sMapFileName) {
-	return false;
-}
+	m_initTransferFunction[stick] = AxesTransferFunction::Linear;
+	m_initDeadZone[stick] = static_cast<float>(m_iAxisDeadZoneValue);
+	m_initClampZone[stick] = 5.0f;
+	m_initFactor[stick] = 1.5f;
+	m_invertAxis[stick] = false;
 
-
-WindowsControllerInputDriver::~WindowsControllerInputDriver() {
-	if (m_device != nullptr) {
-		m_device->Unacquire();
-		m_device->Release();
+	std::string_view section = "invalid";
+	switch (static_cast<AnalogAxis>(stick))
+	{
+	case AnalogAxis::X1:
+		section = "STICK1_LEFT";
+		break;
+	case AnalogAxis::Y1:
+		section = "STICK1_DOWN";
+		break;
+	case AnalogAxis::X2:
+		section = "STICK2_LEFT";
+		break;
+	case AnalogAxis::Y2:
+		section = "STICK2_DOWN";
+		break;
+	case AnalogAxis::Throttle:
+		section = "THROTTLE";
+		break;
+	case AnalogAxis::Rudder:
+		section = "RUDDER";
+		break;
+	case AnalogAxis::L2:
+		section = "ANALOG_L2";
+		break;
+	case AnalogAxis::R2:
+		section = "ANALOG_R2";
+		break;
 	}
-}
 
-void WindowsControllerInputDriver::Initialize() {
-	if (!m_bInvalidController) {
-		for (auto i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
-			GenerateTransferFunction(m_transferLookup[i], 256, m_initTransferFunction[i], m_initFactor[i], m_initDeadZone[i], m_initClampZone[i]);
+	char value[64]{};
+	DWORD ret = GetPrivateProfileStringA("Button Map", section.data(), "", value, sizeof(value), sMapFileName);
+	std::string_view valueView = value;
+	if (ret != 0 && !valueView.empty() && valueView != "not set") {
+		int iAxisID = 0;
+		for (; iAxisID < 8; iAxisID++) {
+			if (valueView.contains(c_DefaultAxisName[iAxisID])) {
+				m_axisMap[stick] = iAxisID;
+				break;
+			}
+		}
+		if (iAxisID >= 8) {
+			return false;
 		}
 	}
-}
-
-const char* WindowsControllerInputDriver::DeviceName() const {
-	return m_deviceName;
-}
-
-bool WindowsControllerInputDriver::SetupAxis(AnalogAxis axis, AxesTransferFunction transferFunction, float factor, float deadZonePercent, float clampZonePercent) {
-	return false;
-}
-
-bool WindowsControllerInputDriver::Connected() {
-	return true;
-}
-
-void WindowsControllerInputDriver::BeginInput() {
-}
-
-void WindowsControllerInputDriver::DoneInput() {
-}
-
-void WindowsControllerInputDriver::Activate(bool active) {
-	if (m_device == nullptr) {
-		return;
-	}
-	if (active) {
-		m_device->Acquire();
-	}
 	else {
-		m_device->Unacquire();
+		return false;
 	}
-}
-
-bool WindowsControllerInputDriver::ObserveFocus() {
-	return m_observeFocus;
+	if (valueView[0] == '+') {
+		m_invertAxis[stick] = true;
+	}
+	return true;
 }
