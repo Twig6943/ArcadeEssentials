@@ -73,6 +73,18 @@
     <ClCompile Include="source\main.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="source\Patch\Input\WindowsControllerInputDriver.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Input\GameCubeAdapter.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Game\Input\XInputInputDriver.cpp">
+      <Filter>Source\Game\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Input\GameCubeInputDriver.cpp">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Game\Types.hpp">
@@ -179,6 +191,24 @@
     </ClInclude>
     <ClInclude Include="source\config.hpp">
       <Filter>Source</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Utils\Vector2.hpp">
+      <Filter>Source\Game\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\WindowsControllerInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Input\XInputInputDriver.hpp">
+      <Filter>Source\Game\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\GameCubeInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\GameCubeAdapter.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Game\Input\KeyControllerInputDriver.hpp">
+      <Filter>Source\Game\Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

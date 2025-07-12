@@ -16,6 +16,7 @@
 #include "Game/Stage/StageEntity.hpp"
 #include "Game/Components/ActiveMoves.hpp"
 #include "Game/Components/CarsReactionMonitor.hpp"
+#include "Game/Input/KeyControllerInputDriver.hpp"
 
 static std::atomic<bool> IS_PC = false;
 
@@ -97,35 +98,6 @@ enum CarsFrontEndScreen {
 	UnkSubMenuGears2 = 33, // FIXME
 	UnkSubMenuGears3 = 34, // FIXME
 	CarSelect = 35,
-};
-
-enum class ControllerButton {
-	Invalid,
-	Left,
-	Down,
-	Right,
-	Up,
-	Square,
-	Cross,
-	Circle,
-	Triangle,
-	L1,
-	R1,
-	L2,
-	R2,
-	Start,
-	Select,
-	Stick1,
-	Stick2,
-	Back,
-	Escape,
-	Unk1,
-	Unk2,
-	Unk3,
-	Unk4,
-	Unk5,
-	Unk6,
-	Max
 };
 
 void __fastcall InitClearanceLevelData(std::uintptr_t unk) {
@@ -1194,6 +1166,14 @@ DefineInlineHook(AdjustScaleformViewport) {
 	}
 };
 
+DefineReplacementHook(KeyControllerInputDriver_BeginInput) {
+	static void _fastcall callback(KeyControllerInputDriver * _this) {
+		original(_this);
+		_this->SetAnalog(&_this->m_stick[std::to_underlying(AnalogAxis::L2)], _this->m_buttonMap[20], BC_INVALID);
+		_this->SetAnalog(&_this->m_stick[std::to_underlying(AnalogAxis::R2)], _this->m_buttonMap[21], BC_INVALID);
+	}
+};
+
 #ifdef _DEBUG
 std::chrono::time_point<std::chrono::system_clock> start_time{};
 #endif
@@ -1252,9 +1232,9 @@ extern "C" void __stdcall Pentane_Main() {
 		// SetVolumeLogger::install_at_ptr(0x007e0c30);
 		// HandleInputHook::install_at_ptr(0x01168be0);
 		// GetMinMaxPlayer::install_at_ptr(0x01168cee);
-		CheckVertDecl::install_at_ptr(0x0085227d);
-		ElementTypeGetter::install_at_ptr(0x00829520);
-		AsBind::install_at_ptr(0x0085274c);
+		// CheckVertDecl::install_at_ptr(0x0085227d);
+		// ElementTypeGetter::install_at_ptr(0x00829520);
+		// AsBind::install_at_ptr(0x0085274c);
 		// init_message_logger_arcade();
 #endif
 		/* DEBUGGING HOOKS END */
@@ -1435,7 +1415,11 @@ extern "C" void __stdcall Pentane_Main() {
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x004b8772), 1, sunset::utils::Perm::ExecuteReadWrite);
 		*reinterpret_cast<std::uint8_t*>(0x004b8772) = 0;
 
+		// Modifies the input driver to continously search for controllers and handle instances where a controller drops/reconnects.
 		sunset::inst::jmp(reinterpret_cast<void*>(0x00815fb0), BeginInput);
+
+		// Fixes an issue where R2 and L2 would not be bound to any keys.
+		KeyControllerInputDriver_BeginInput::install_at_ptr(0x008124e0);
 
 		// Fixes an issue where Arcade would ignore the HudPosition_Multi flag in PlayerHud::Init.
 		HandleHudPositionMulti::install_at_ptr(0x0054cf1a);

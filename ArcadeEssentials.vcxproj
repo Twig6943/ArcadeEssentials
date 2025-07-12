@@ -79,7 +79,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>plugin.def</ModuleDefinitionFile>
       <GenerateMapFile>true</GenerateMapFile>
-      <AdditionalDependencies>d3d9.lib;Dwmapi.lib;OneCoreUAP.lib;Xinput.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WinUSB.lib;d3d9.lib;Dwmapi.lib;OneCoreUAP.lib;Xinput.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "C:\Projects\OctaneEngine\C2A\Pentane\Plugins\ArcadeEssentials.dll" "C:\Projects\OctaneEngine\Cars2PC-Allinol\Pentane\Plugins\ArcadeEssentials.dll*" /Y</Command>
@@ -102,7 +102,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>plugin.def</ModuleDefinitionFile>
-      <AdditionalDependencies>d3d9.lib;Dwmapi.lib;OneCoreUAP.lib;Xinput.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>WinUSB.lib;d3d9.lib;Dwmapi.lib;OneCoreUAP.lib;Xinput.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "C:\Projects\OctaneEngine\C2A\Pentane\Plugins\ArcadeEssentials.dll" "C:\Projects\OctaneEngine\Cars2PC-Allinol\Pentane\Plugins\ArcadeEssentials.dll*" /Y</Command>
@@ -113,9 +113,13 @@
     <ClCompile Include="source\config.cpp" />
     <ClCompile Include="source\Game\Input\ControllerInputDriver.cpp" />
     <ClCompile Include="source\Game\Input\SystemInputDriver.cpp" />
+    <ClCompile Include="source\Game\Input\XInputInputDriver.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\Patch\Components\ActiveMoves.cpp" />
     <ClCompile Include="source\Patch\Components\CarsReactionMonitor.cpp" />
+    <ClCompile Include="source\Patch\Input\GameCubeAdapter.cpp" />
+    <ClCompile Include="source\Patch\Input\GameCubeInputDriver.cpp" />
+    <ClCompile Include="source\Patch\Input\WindowsControllerInputDriver.cpp" />
     <ClCompile Include="source\Patch\Input\WindowsSystemInputDriver.cpp" />
     <ClCompile Include="source\Patch\OptionFlashCallbacks.cpp" />
     <ClCompile Include="source\pentane.cpp" />
@@ -139,7 +143,9 @@
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp" />
     <ClInclude Include="source\Game\Genie\String.hpp" />
     <ClInclude Include="source\Game\Input\ControllerInputDriver.hpp" />
+    <ClInclude Include="source\Game\Input\KeyControllerInputDriver.hpp" />
     <ClInclude Include="source\Game\Input\SystemInputDriver.hpp" />
+    <ClInclude Include="source\Game\Input\XInputInputDriver.hpp" />
     <ClInclude Include="source\Game\Kernel.hpp" />
     <ClInclude Include="source\Game\Physics\RigidBody.hpp" />
     <ClInclude Include="source\Game\Renderer.hpp" />
@@ -152,7 +158,11 @@
     <ClInclude Include="source\Game\Utils\AnimEventDispatcher.hpp" />
     <ClInclude Include="source\Game\Utils\Matrix.hpp" />
     <ClInclude Include="source\Game\Utils\PIDController.hpp" />
+    <ClInclude Include="source\Game\Utils\Vector2.hpp" />
     <ClInclude Include="source\Game\Utils\Vector3.hpp" />
+    <ClInclude Include="source\Patch\Input\GameCubeAdapter.hpp" />
+    <ClInclude Include="source\Patch\Input\GameCubeInputDriver.hpp" />
+    <ClInclude Include="source\Patch\Input\WindowsControllerInputDriver.hpp" />
     <ClInclude Include="source\Patch\Input\WindowsSystemInputDriver.hpp" />
     <ClInclude Include="source\Patch\OptionFlashCallbacks.hpp" />
     <ClInclude Include="source\pentane.hpp" />
