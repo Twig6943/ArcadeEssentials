@@ -5,6 +5,7 @@ inline auto Genie_String_Assign = (void(__thiscall*)(void*, const char*))(0x005f
 inline auto Genie_String_Constructor = (void(__thiscall*)(void*))(0x005ff660);
 inline auto Genie_String_Constructor_WithStr = (void(__thiscall*)(void*, const char*))(0x005ff620);
 inline auto Genie_String_Destructor = (void(__thiscall*)(void*))(0x005ff4a0);
+inline auto Genie_String_Append = (void*(__thiscall*)(void*, const char*))(0x006130c0);
 
 namespace Genie {
 	struct StringData {
@@ -32,6 +33,9 @@ namespace Genie {
 		}
 		inline StringData* GetData() {
 			reinterpret_cast<StringData*>(reinterpret_cast<std::uintptr_t>(data) - sizeof(StringData));
+		}
+		inline void Append(const char* lit) {
+			Genie_String_Append(this, lit);
 		}
 		String(const String&) = delete;
 		String& operator=(const String&) = delete;
