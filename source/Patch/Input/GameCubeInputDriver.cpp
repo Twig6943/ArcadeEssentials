@@ -2,9 +2,10 @@
 #include "../../pentane.hpp"
 #include "GameCubeInputDriver.hpp"
 
-GameCubeInputDriver::GameCubeInputDriver(unsigned long port, GameCubeAdapter* adapter) {
+GameCubeInputDriver::GameCubeInputDriver(unsigned long port, GameCubeAdapter* adapter) : ControllerInputDriver() {
 	m_port = port;
 	m_adapter = adapter;
+	m_uiType = UIControllerType::GameCubeController;
 	Initialize();
 }
 

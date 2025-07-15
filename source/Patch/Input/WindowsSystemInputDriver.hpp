@@ -13,10 +13,10 @@ inline class WindowsSystemInputDriver** g_InputPtr = reinterpret_cast<class Wind
 class WindowsSystemInputDriver : public SystemInputDriver {
 public:
 	char m_cKeyboardBuffer[256];
-	IDirectInput8W* dInput;
-	IDirectInputDevice8W* m_pMouse;
-	IDirectInputDevice8W* m_pKeyboard;
-	IDirectInputDevice8W* m_DevHdl;
+	IDirectInput8A* dInput;
+	IDirectInputDevice8A* m_pMouse;
+	IDirectInputDevice8A* m_pKeyboard;
+	IDirectInputDevice8A* m_DevHdl;
 	HWND hWnd;
 	short keyToButtonMap[256];
 	int mapEntries;
@@ -32,3 +32,4 @@ public:
 static_assert(sizeof(WindowsSystemInputDriver) == 1120);
 
 void __fastcall BeginInput(class WindowsSystemInputDriver* _this);
+int __stdcall EnumJoysticks(const DIDEVICEINSTANCEA* devInst, void* udata);

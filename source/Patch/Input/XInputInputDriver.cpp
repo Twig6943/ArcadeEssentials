@@ -3,6 +3,12 @@
 #include <Xinput.h>
 #include <algorithm>
 #include "XInputInputDriver.hpp"
+#include "../../pentane.hpp"
+
+DWORD __stdcall XInputGetCapabilitiesEx(DWORD dwReserved, DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES_EX* pCapabilitiesEx) {
+	auto func = reinterpret_cast<DWORD(WINAPI*)(DWORD, DWORD, DWORD, XINPUT_CAPABILITIES_EX*)>(GetProcAddress(GetModuleHandleA("XINPUT1_4.dll"), reinterpret_cast<const char*>(108)));
+	return func(dwReserved, dwUserIndex, dwFlags, pCapabilitiesEx);
+}
 
 XInputInputDriver::XInputInputDriver(unsigned long userIndex) : ControllerInputDriver() {
 	m_dwUserIndex = userIndex;
@@ -36,8 +42,8 @@ bool XInputInputDriver::SetupAxis(AnalogAxis axis, AxesTransferFunction transfer
 }
 
 bool XInputInputDriver::Connected() {
-	XINPUT_CAPABILITIES capabilities{};
-	return XInputGetCapabilities(m_dwUserIndex, XINPUT_FLAG_GAMEPAD, &capabilities) == ERROR_SUCCESS;
+	XINPUT_CAPABILITIES_EX capabilities{};
+	return XInputGetCapabilitiesEx(1, m_dwUserIndex, XINPUT_FLAG_GAMEPAD, &capabilities) == ERROR_SUCCESS;
 }
 
 void XInputInputDriver::BeginInput() {
@@ -45,7 +51,7 @@ void XInputInputDriver::BeginInput() {
 
 	XINPUT_STATE inputState{};
 
-	if (XInputGetState(m_dwUserIndex, &inputState) == 0) {
+	if (XInputGetState(m_dwUserIndex, &inputState) == ERROR_SUCCESS) {
 		SetState(ControllerButton::Left, (inputState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0);
 		SetState(ControllerButton::Down, (inputState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0);
 		SetState(ControllerButton::Right, (inputState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0);
@@ -123,9 +129,7 @@ bool XInputInputDriver::ClearVibration(bool force) {
 		return false;
 	}
 	if (m_vibrationEndTime == 0 || force) {
-		XINPUT_VIBRATION vibration;
-		vibration.wLeftMotorSpeed = 0;
-		vibration.wRightMotorSpeed = 0;
+		XINPUT_VIBRATION vibration{};
 		if (XInputSetState(m_dwUserIndex, &vibration) == ERROR_SUCCESS) {
 			m_vibrationIntensity = 0;
 			m_vibrationEndTime = 0;
@@ -146,6 +150,10 @@ bool XInputInputDriver::GetVibration(unsigned int& intensity) {
 	return true;
 }
 
+bool XInputInputDriver::AnyButtonPressed() {
+	return false;
+}
+
 void XInputInputDriver::SimulatePointer() {
 	float x = m_stick[std::to_underlying(AnalogAxis::X2)] * 0.025f;
 	float y = m_stick[std::to_underlying(AnalogAxis::Y2)] * 0.025f;
@@ -157,4 +165,13 @@ void XInputInputDriver::SimulatePointer() {
 	m_pointer = newPointer;
 	m_horizon = Vector2();
 	m_pointerValid = true;
+}
+
+const char* XInputInputDriver::Identify() {
+	return "XInput";
+}
+
+XInputInputDriver* __fastcall XInputInputDriver_XInputInputDriver(XInputInputDriver* _this, std::uintptr_t edx, unsigned long userIndex) {
+	new (_this) XInputInputDriver(userIndex);
+	return _this;
 }

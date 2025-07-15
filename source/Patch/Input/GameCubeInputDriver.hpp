@@ -1,5 +1,5 @@
 #pragma once
-#include "../../Game/Input/ControllerInputDriver.hpp"
+#include "ControllerInputDriver.hpp"
 #include "GameCubeAdapter.hpp"
 
 class GameCubeInputDriver : public ControllerInputDriver {

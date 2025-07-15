@@ -1,5 +1,22 @@
 #pragma once
+#include <Windows.h>
+#include <Xinput.h>
 #include "ControllerInputDriver.hpp"
+
+typedef struct _XINPUT_CAPABILITIES_EX {
+	BYTE Type;
+	BYTE SubType;
+	WORD Flags;
+	XINPUT_GAMEPAD Gamepad;
+	XINPUT_VIBRATION Vibration;
+	WORD VendorId;
+	WORD ProductId;
+	WORD VersionNumber;
+	WORD Unknown1;
+	DWORD Unknown2;
+} XINPUT_CAPABILITIES_EX, *PXINPUT_CAPABILITIES_EX;
+
+DWORD WINAPI XInputGetCapabilitiesEx(DWORD dwReserved, DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES_EX* pCapabilitiesEx);
 
 class XInputInputDriver : public ControllerInputDriver {
 public:
@@ -26,8 +43,13 @@ public:
 	virtual bool SetVibrationDuration(unsigned int durationMilliseconds, unsigned int intensity, VibratePan pan) override;
 	virtual bool ClearVibration(bool force = false) override;
 	virtual bool GetVibration(unsigned int& intensity) override;
+	virtual bool AnyButtonPressed() override;
 
 	void SimulatePointer();
+
+	virtual const char* Identify() override;
 };
+
+XInputInputDriver* __fastcall XInputInputDriver_XInputInputDriver(XInputInputDriver* _this, std::uintptr_t edx, unsigned long userIndex);
 
 static_assert(sizeof(XInputInputDriver) == 0x4e78);

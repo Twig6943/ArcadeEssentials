@@ -84,6 +84,34 @@ enum class VibratePan {
 	Right
 };
 
+enum class UIControllerType : unsigned char {
+	Xbox360Controller = 0,
+	DualShock3,
+	WiiRemote,
+	WiiClassicController,
+	GameCubeController,
+	DualSense,
+	XboxOneController,
+	NintendoSwitchProController,
+};
+
+inline std::string_view SuffixForCT(UIControllerType self) {
+	switch (self) {
+	case UIControllerType::Xbox360Controller:
+		return "_360";
+	case UIControllerType::DualShock3:
+		return "_ps3";
+	case UIControllerType::WiiRemote:
+		return "_wii";
+	case UIControllerType::WiiClassicController:
+		return "_wcc";
+	case UIControllerType::GameCubeController:
+		return "_gcn";
+	default:
+		return "_360";
+	}
+}
+
 struct ButtonState {
 	bool last;
 	bool now;
@@ -112,6 +140,7 @@ public:
 	bool m_allowConnection;
 	bool m_inFirstPerson;
 	bool m_centerView;
+	UIControllerType m_uiType;
 	int m_headSetStatus;
 	int m_headSetPort;
 	ControllerInputDriver* m_pSharedController;
@@ -153,6 +182,8 @@ public:
 	inline virtual void Activate(bool active) {}
 	inline virtual bool ObserveFocus() { return false; }
 	virtual void SetSecondaryController(ControllerInputDriver* controller);
+	virtual bool AnyButtonPressed() = 0;
+	virtual const char* Identify() = 0;
 public:
 	inline void SetSharedController(ControllerInputDriver* sharedController) {
 		m_pSharedController = sharedController;

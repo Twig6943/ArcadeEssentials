@@ -29,6 +29,8 @@ ControllerInputDriver::ControllerInputDriver() {
 	m_pointer.y = 0;
 	m_horizon.x = 0;
 	m_horizon.y = 0;
+
+	m_uiType = UIControllerType::Xbox360Controller;
 }
 
 ControllerInputDriver::~ControllerInputDriver() {

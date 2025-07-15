@@ -64,9 +64,6 @@
     <ClCompile Include="source\Patch\Input\WindowsSystemInputDriver.cpp">
       <Filter>Patch\Input</Filter>
     </ClCompile>
-    <ClCompile Include="source\Game\Input\ControllerInputDriver.cpp">
-      <Filter>Source\Game\Input</Filter>
-    </ClCompile>
     <ClCompile Include="source\config.cpp">
       <Filter>Source</Filter>
     </ClCompile>
@@ -79,10 +76,16 @@
     <ClCompile Include="source\Patch\Input\GameCubeAdapter.cpp">
       <Filter>Patch\Input</Filter>
     </ClCompile>
-    <ClCompile Include="source\Game\Input\XInputInputDriver.cpp">
-      <Filter>Source\Game\Input</Filter>
-    </ClCompile>
     <ClCompile Include="source\Patch\Input\GameCubeInputDriver.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Input\KeyControllerInputDriver.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Input\XInputInputDriver.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="source\Patch\Input\ControllerInputDriver.cpp">
       <Filter>Patch\Input</Filter>
     </ClCompile>
   </ItemGroup>
@@ -183,9 +186,6 @@
     <ClInclude Include="source\Patch\Input\WindowsSystemInputDriver.hpp">
       <Filter>Patch\Input</Filter>
     </ClInclude>
-    <ClInclude Include="source\Game\Input\ControllerInputDriver.hpp">
-      <Filter>Source\Game\Input</Filter>
-    </ClInclude>
     <ClInclude Include="source\Patch\OptionFlashCallbacks.hpp">
       <Filter>Patch</Filter>
     </ClInclude>
@@ -198,17 +198,20 @@
     <ClInclude Include="source\Patch\Input\WindowsControllerInputDriver.hpp">
       <Filter>Patch\Input</Filter>
     </ClInclude>
-    <ClInclude Include="source\Game\Input\XInputInputDriver.hpp">
-      <Filter>Source\Game\Input</Filter>
-    </ClInclude>
     <ClInclude Include="source\Patch\Input\GameCubeInputDriver.hpp">
       <Filter>Patch\Input</Filter>
     </ClInclude>
     <ClInclude Include="source\Patch\Input\GameCubeAdapter.hpp">
       <Filter>Patch\Input</Filter>
     </ClInclude>
-    <ClInclude Include="source\Game\Input\KeyControllerInputDriver.hpp">
-      <Filter>Source\Game\Input</Filter>
+    <ClInclude Include="source\Patch\Input\KeyControllerInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\XInputInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\ControllerInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

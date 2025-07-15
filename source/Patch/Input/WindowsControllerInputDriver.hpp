@@ -1,12 +1,15 @@
 #pragma once
 #include <dinput.h>
-#include "../../Game/Input/ControllerInputDriver.hpp"
+#include "ControllerInputDriver.hpp"
 
 class WindowsControllerInputDriver : public ControllerInputDriver {
 public:
-	IDirectInputDevice8W* m_device;
+	IDirectInputDevice8A* m_device;
 	int m_axisValid[8];
 	bool m_observeFocus;
+	// Since there are 3 alignment padding bytes between `m_observeFocus` and `m_transferLookup`, we can fit two new booleans in here without changing the layout of the class!
+	bool m_hasAnalogLT;
+	bool m_hasAnalogRT;
 	float m_transferLookup[std::to_underlying(AnalogAxis::Max)][256];
 	char m_deviceName[128];
 	int m_buttonMap[std::to_underlying(ControllerButton::Max)];
@@ -17,8 +20,9 @@ public:
 	float m_initClampZone[std::to_underlying(AnalogAxis::Max)];
 	bool m_invertAxis[std::to_underlying(AnalogAxis::Max)];
 	int m_iAxisDeadZoneValue;
+	wchar_t m_devicePath[260];
 public:
-	WindowsControllerInputDriver(HWND hWnd, IDirectInputDevice8W* joystickDevice, int deviceNumber, const char* pDeviceName);
+	WindowsControllerInputDriver(HWND hWnd, IDirectInputDevice8A* joystickDevice, int deviceNumber, const char* pDeviceName);
 
 	bool SetupDevice(HWND hWnd);
 	int GetProfileButton(const char* buttonName, int* value, char* sMapFileName);
@@ -35,6 +39,12 @@ public:
 	virtual void DoneInput() override;
 	virtual void Activate(bool active) override;
 	virtual bool ObserveFocus() override;
+	virtual bool AnyButtonPressed() override;
+
+	virtual const char* Identify() override;
 };
 
-static_assert(sizeof(WindowsControllerInputDriver) == 0x5140);
+int __fastcall LoadProfile(WindowsControllerInputDriver* _this, std::uintptr_t edx, int deviceNumber);
+WindowsControllerInputDriver* __fastcall WindowsControllerInputDriver_WindowsControllerInputDriver(WindowsControllerInputDriver* _this, std::uintptr_t edx, HWND hWnd, IDirectInputDevice8A* joystickDevice, int deviceNumber, const char* pDeviceName);
+
+static_assert(sizeof(WindowsControllerInputDriver) == 0x5140 + 520);

@@ -8,15 +8,17 @@
 #include <dwmapi.h>
 #include "pentane.hpp"
 #include "config.hpp"
-#include "Patch/Input/WindowsSystemInputDriver.hpp"
-#include "Patch/OptionFlashCallbacks.hpp"
 #include "Game/GameSpecificFlashImpl.hpp"
 #include "Game/Genie/String.hpp"
 #include "Game/GameProgressionManager.hpp"
 #include "Game/Stage/StageEntity.hpp"
 #include "Game/Components/ActiveMoves.hpp"
 #include "Game/Components/CarsReactionMonitor.hpp"
-#include "Game/Input/KeyControllerInputDriver.hpp"
+#include "Patch/Input/KeyControllerInputDriver.hpp"
+#include "Patch/Input/WindowsSystemInputDriver.hpp"
+#include "Patch/Input/WindowsControllerInputDriver.hpp"
+#include "Patch/Input/XInputInputDriver.hpp"
+#include "Patch/OptionFlashCallbacks.hpp"
 
 static std::atomic<bool> IS_PC = false;
 
@@ -872,10 +874,15 @@ DefineInlineHook(SupplyFlashArgs2) {
 
 DefineInlineHook(FixTurboUI) {
 	static void _cdecl callback(sunset::InlineCtx & ctx) {
+		std::uintptr_t _this = *reinterpret_cast<std::uintptr_t*>(ctx.ebp.unsigned_integer - 0xCC);
+		int playerNumber = *reinterpret_cast<int*>(_this + 0x194);
+
 		std::uintptr_t* inst = *reinterpret_cast<std::uintptr_t**>(ctx.ebp.unsigned_integer - 0x18);
-		Genie::String* button_turbo = reinterpret_cast<Genie::String*>(ctx.ebp.unsigned_integer - 0x3C);
+		Genie::String* buttonTurbo = reinterpret_cast<Genie::String*>(ctx.ebp.unsigned_integer - 0x3C);
+		// buttonTurbo->Append(SuffixForCT((*g_InputPtr)->GetController(playerNumber)->m_uiType).data());
+
 		auto func = *reinterpret_cast<void(__thiscall**)(void*, char*, const char*, const char*)>(*inst + 0x50);
-		func(inst, button_turbo->data, "turbo", "normal");
+		func(inst, buttonTurbo->data, "turbo", "normal");
 	}
 };
 
@@ -1285,12 +1292,28 @@ extern "C" void __stdcall Pentane_Main() {
 		SetButtonLayout::install_at_ptr(0x01163f70);
 
 		// Redirects the game's WinArcadeInputDriver to the otherwise-unused WindowsSystemInputDriver (likely a leftover from the PC port).
-		sunset::inst::push_u32(reinterpret_cast<void*>(0x0080cf64), 0x500); // Patch argument to operator.new
+		sunset::inst::push_u32(reinterpret_cast<void*>(0x0080cf64), 0x460); // Patch argument to operator.new
 		sunset::inst::call(reinterpret_cast<void*>(0x0080cf8d), reinterpret_cast<void*>(0x00814fa0)); // Replace call to constructor
 		sunset::inst::call(reinterpret_cast<void*>(0x0080da31), reinterpret_cast<void*>(0x008156f0)); // Replace call to ::Initialize member function
 		
+		// Replaces the game's WindowsControllerInputDriver class with our own, to allow for DirectInput controllers with or without digital triggers to function.
+		sunset::inst::call(reinterpret_cast<void*>(0x008166a8), WindowsControllerInputDriver_WindowsControllerInputDriver);
+		// Since we replace the destructor, we need to swap out the allocator so the `scalar_deleting_destructor` uses an `operator delete` that matches. 
+		sunset::inst::call(reinterpret_cast<void*>(0x0081665c), static_cast<void*(*)(std::size_t)>(operator new));
+		// Replaces the game's EnumJoysticks function with our own to handle instances where the same controller gets picked up several times.
+		sunset::inst::push_u32(reinterpret_cast<void*>(0x00815896), reinterpret_cast<std::uintptr_t>(EnumJoysticks));
+
+		// Replaces the game's XInputInputDriver class with our own, so we can use `XInputGetCapabilitiesEx` instead of `XInputGetCapabilities`.
+		sunset::inst::call(reinterpret_cast<void*>(0x00815784), XInputInputDriver_XInputInputDriver);
+		// Since we replace the destructor, we need to swap out the allocator so the `scalar_deleting_destructor` uses an `operator delete` that matches. 
+		sunset::inst::call(reinterpret_cast<void*>(0x0081575c), static_cast<void* (*)(std::size_t)>(operator new));
 		// No-ops code that floods the logger with "dpad pressed" messages.
 		sunset::inst::nop(reinterpret_cast<void*>(0x00814a55), 0x3D);
+
+		// Replaces the game's KeyControllerInputDriver class with our own, so we can properly treat L2/R2 as axes.
+		sunset::inst::call(reinterpret_cast<void*>(0x00815b4d), KeyControllerInputDriver_KeyControllerInputDriver);
+		// Since we replace the destructor, we need to swap out the allocator so the `scalar_deleting_destructor` uses an `operator delete` that matches. 
+		sunset::inst::call(reinterpret_cast<void*>(0x00815b1b), static_cast<void* (*)(std::size_t)>(operator new));
 
 		// Stubs the function that otherwise triggers a a system reboot (What the actual fuck RT??)
 		sunset::utils::set_permission(reinterpret_cast<void*>(0x00458680), 1, sunset::utils::Perm::ExecuteReadWrite);
@@ -1418,8 +1441,6 @@ extern "C" void __stdcall Pentane_Main() {
 		// Modifies the input driver to continously search for controllers and handle instances where a controller drops/reconnects.
 		sunset::inst::jmp(reinterpret_cast<void*>(0x00815fb0), BeginInput);
 
-		// Fixes an issue where R2 and L2 would not be bound to any keys.
-		KeyControllerInputDriver_BeginInput::install_at_ptr(0x008124e0);
 
 		// Fixes an issue where Arcade would ignore the HudPosition_Multi flag in PlayerHud::Init.
 		HandleHudPositionMulti::install_at_ptr(0x0054cf1a);

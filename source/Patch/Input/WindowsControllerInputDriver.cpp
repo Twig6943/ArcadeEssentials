@@ -18,15 +18,38 @@ std::array<std::string_view, 9> c_DefaultAxisName = {
 	"----"
 };
 
-WindowsControllerInputDriver::WindowsControllerInputDriver(HWND hWnd, IDirectInputDevice8W* joystickDevice, int deviceNumber, const char* pDeviceName) {
+constexpr auto SONY_GROUP_CORPORATION = 0x054C;
+
+WindowsControllerInputDriver::WindowsControllerInputDriver(HWND hWnd, IDirectInputDevice8A* joystickDevice, int deviceNumber, const char* pDeviceName) : ControllerInputDriver() {
 	m_device = joystickDevice;
 	for (auto i = 0; i < sizeof(m_axisValid) / sizeof(int); i++) {
 		m_axisValid[i] = false;
 	}
 	m_iAxisDeadZoneValue = 20;
 	m_bInvalidController = SetupDevice(hWnd);
+	std::fill_n(m_devicePath, sizeof(m_devicePath) / sizeof(wchar_t), 0);
 	if (!m_bInvalidController) {
+		m_hasAnalogLT = true;
+		m_hasAnalogRT = true;
 		m_bInvalidController = LoadProfile(deviceNumber);
+
+		DIPROPGUIDANDPATH dip{};
+		dip.diph.dwSize = sizeof(DIPROPGUIDANDPATH);
+		dip.diph.dwHeaderSize = sizeof(DIPROPHEADER);
+		dip.diph.dwObj = 0;
+		dip.diph.dwHow = DIPH_DEVICE;
+		m_device->GetProperty(DIPROP_GUIDANDPATH, &dip.diph); 
+		
+		DIDEVICEINSTANCEA devInst{};
+		devInst.dwSize = sizeof(DIDEVICEINSTANCEA);
+		m_device->GetDeviceInfo(&devInst);
+		if ((devInst.guidInstance.Data1 & 0xFFFF) == SONY_GROUP_CORPORATION) {
+			m_uiType = UIControllerType::DualShock3;
+		}
+#ifdef _DEBUG
+		m_uiType = UIControllerType::DualShock3;
+#endif
+		std::copy_n(dip.wszPath, sizeof(m_devicePath) / sizeof(wchar_t), m_devicePath);
 		Initialize();
 	}
 	if (pDeviceName) {
@@ -135,12 +158,26 @@ void WindowsControllerInputDriver::BeginInput() {
 			}
 		}
 	}
+	if (!m_hasAnalogLT) {
+		m_stick[std::to_underlying(AnalogAxis::L2)] = m_state[std::to_underlying(ControllerButton::L2)].now ? 1.0f : 0.0f;
+	}
+	if (!m_hasAnalogRT) {
+		m_stick[std::to_underlying(AnalogAxis::R2)] = m_state[std::to_underlying(ControllerButton::R2)].now ? 1.0f : 0.0f;
+	}
 }
 
 void WindowsControllerInputDriver::DoneInput() {}
 
 bool WindowsControllerInputDriver::ObserveFocus() {
 	return m_observeFocus;
+}
+
+bool WindowsControllerInputDriver::AnyButtonPressed() {
+	return false;
+}
+
+const char* WindowsControllerInputDriver::Identify() {
+	return "DirectInput";
 }
 
 void WindowsControllerInputDriver::Activate(bool active) {
@@ -156,7 +193,7 @@ void WindowsControllerInputDriver::Activate(bool active) {
 }
 
 bool WindowsControllerInputDriver::SetupDevice(HWND hWnd) {
-	if (FAILED(m_device->EnumObjects(reinterpret_cast<LPDIENUMDEVICEOBJECTSCALLBACKW>(0x00813950), this, DIDFT_ALL))) {
+	if (FAILED(m_device->EnumObjects(reinterpret_cast<LPDIENUMDEVICEOBJECTSCALLBACKA>(0x00813950), this, DIDFT_ALL))) {
 		return true;
 	}
 	return false;
@@ -212,6 +249,12 @@ int WindowsControllerInputDriver::LoadProfile(int deviceNumber) {
 	for (auto i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
 		if (!GetProfileStick(i, sMapFileName)) {
 			logger::log_format("[WindowsControllerInputDriver::LoadProfile] Failed to read axis: {}", i);
+			if (i == std::to_underlying(AnalogAxis::L2)) {
+				m_hasAnalogLT = false;
+			}
+			if (i == std::to_underlying(AnalogAxis::R2)) {
+				m_hasAnalogRT = false;
+			}
 		}
 	}
 
@@ -280,4 +323,13 @@ bool WindowsControllerInputDriver::GetProfileStick(int stick, char* sMapFileName
 		m_invertAxis[stick] = true;
 	}
 	return true;
+}
+
+int __declspec(naked) __fastcall LoadProfile(WindowsControllerInputDriver* _this, std::uintptr_t edx, int deviceNumber) {
+	_asm jmp WindowsControllerInputDriver::LoadProfile
+}
+
+WindowsControllerInputDriver* __fastcall WindowsControllerInputDriver_WindowsControllerInputDriver(WindowsControllerInputDriver* _this, std::uintptr_t edx, HWND hWnd, IDirectInputDevice8A* joystickDevice, int deviceNumber, const char* pDeviceName) {
+	new (_this) WindowsControllerInputDriver(hWnd, joystickDevice, deviceNumber, pDeviceName);
+	return _this;
 }
