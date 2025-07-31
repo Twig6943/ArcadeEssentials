@@ -27,7 +27,7 @@ Head to the [Releases](https://github.com/itsmeft24/ArcadeEssentials/releases/la
 Note that you **will need [Pentane](https://github.com/high-octane-dev/pentane) installed and properly configured** to install ArcadeEssentials. Full installation and setup tutorials for both *Pentane* and *ArcadeEssentials* can be found on [the high-octane-dev organization website](https://high-octane-dev.github.io/). 
 
 ## Requisite Asset Changes
-Each release of ArcadeEssentials will include several asset changes to ensure the most functional game experience. It is **highly recommended** that you either install the bundled assets inside ArcadeEssentials' `release.zip`, *or* install an overhaul mod (such as *Cars 2: Arcade Restorations*) that includes these changes to obtain the most functional game experience.
+Each release of ArcadeEssentials will include several asset changes to ensure the most functional game experience. It is **highly recommended** that you either install the bundled assets inside ArcadeEssentials' `release.zip`, *or* install an overhaul mod that includes these changes to obtain the most functional game experience.
 
 To effectively recreate the changes bundled with ArcadeEssentials, this list should prove helpful: 
 - `assets/startup.zip`
