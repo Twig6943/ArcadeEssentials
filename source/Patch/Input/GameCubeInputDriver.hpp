@@ -28,4 +28,6 @@ public:
 	virtual bool SetVibrationDuration(unsigned int durationMilliseconds, unsigned int intensity, VibratePan pan) override;
 	virtual bool ClearVibration(bool force = false) override;
 	virtual bool GetVibration(unsigned int& intensity) override;
+
+	virtual const char* Identify() override;
 };

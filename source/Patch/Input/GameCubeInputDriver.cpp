@@ -9,12 +9,10 @@ GameCubeInputDriver::GameCubeInputDriver(unsigned long port, GameCubeAdapter* ad
 	Initialize();
 }
 
-GameCubeInputDriver::~GameCubeInputDriver()
-{
+GameCubeInputDriver::~GameCubeInputDriver() {
 }
 
-void GameCubeInputDriver::Initialize()
-{
+void GameCubeInputDriver::Initialize() {
 	for (auto axis = 0; axis < std::to_underlying(AnalogAxis::Max); axis++) {
 		float deadZonePercent = 10;
 		if (axis == std::to_underlying(AnalogAxis::X1) || axis == std::to_underlying(AnalogAxis::Y1)) {
@@ -125,4 +123,8 @@ bool GameCubeInputDriver::ClearVibration(bool force)
 bool GameCubeInputDriver::GetVibration(unsigned int& intensity)
 {
 	return false;
+}
+
+const char* GameCubeInputDriver::Identify() {
+	return "GameCubeAdapter";
 }

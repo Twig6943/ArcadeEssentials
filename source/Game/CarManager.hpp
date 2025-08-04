@@ -4,6 +4,7 @@
 
 inline auto CarManager_GetCarClass = (int(__thiscall*)(class CarManager*, std::uint32_t))(0x004d7550);
 inline auto CarManager_GetCarId = (std::uint32_t(__thiscall*)(class CarManager*, ActorHandle))(0x004d6460);
+inline auto CarManager_FUN_004dea40 = (const char*(__thiscall*)(class CarManager*, std::uint32_t))(0x004dea40);
 
 class CarManager {
 public:
@@ -58,6 +59,9 @@ public:
 public:
 	std::uint32_t GetCarId(ActorHandle handle) {
 		return CarManager_GetCarId(this, handle);
+	}
+	const char* FUN_004dea40(std::uint32_t carId) {
+		return CarManager_FUN_004dea40(this, carId);
 	}
 	CarClass GetCarClass(std::uint32_t id) {
 		return static_cast<CarClass>(CarManager_GetCarClass(this, id));

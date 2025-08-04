@@ -90,15 +90,12 @@ enum class UIControllerType : unsigned char {
 	WiiRemote,
 	WiiClassicController,
 	GameCubeController,
-	DualSense,
-	XboxOneController,
-	NintendoSwitchProController,
 };
 
 inline std::string_view SuffixForCT(UIControllerType self) {
 	switch (self) {
 	case UIControllerType::Xbox360Controller:
-		return "_360";
+		return ""; // FIXME
 	case UIControllerType::DualShock3:
 		return "_ps3";
 	case UIControllerType::WiiRemote:
@@ -107,8 +104,6 @@ inline std::string_view SuffixForCT(UIControllerType self) {
 		return "_wcc";
 	case UIControllerType::GameCubeController:
 		return "_gcn";
-	default:
-		return "_360";
 	}
 }
 

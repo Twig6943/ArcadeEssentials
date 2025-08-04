@@ -14,6 +14,7 @@
 #include "WindowsSystemInputDriver.hpp"
 #include "WindowsControllerInputDriver.hpp"
 #include "XInputInputDriver.hpp"
+#include "KeyControllerInputDriver.hpp"
 #include "../../pentane.hpp"
 
 inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
@@ -40,7 +41,7 @@ bool iequals(std::wstring_view lhs, std::wstring_view rhs) {
 	return true;
 }
 
-int __stdcall EnumJoysticks(const DIDEVICEINSTANCEA* devInst, void* udata) {
+int __stdcall WindowsSystemInputDriver_EnumJoysticks(const DIDEVICEINSTANCEA* devInst, void* udata) {
 
 	WindowsSystemInputDriver* _this = reinterpret_cast<WindowsSystemInputDriver*>(udata);
 
@@ -264,7 +265,7 @@ void _cdecl ReleaseNotification() {
 	CM_Unregister_Notification(hNotify);
 }
 
-void __fastcall BeginInput(WindowsSystemInputDriver* _this) {
+void __fastcall WindowsSystemInputDriver_BeginInput(WindowsSystemInputDriver* _this) {
 	if (FIRST_INIT) {
 		CM_NOTIFY_FILTER filter = {};
 		filter.cbSize = sizeof(CM_NOTIFY_FILTER);
@@ -288,7 +289,7 @@ void __fastcall BeginInput(WindowsSystemInputDriver* _this) {
 			return;
 		}
 
-		char* dInputKeyCode = reinterpret_cast<char*>(0x0185efa8);
+		unsigned char* dInputKeyCode = reinterpret_cast<unsigned char*>(0x0185efa8);
 		for (int i = 0; i < BC_BUTTONCODES - 1; i++) {
 			if (dInputKeyCode[i] != 0) {
 				_this->state[i].now = ((_this->m_cKeyboardBuffer[dInputKeyCode[i]] & 0x80) != 0);
@@ -304,7 +305,7 @@ void __fastcall BeginInput(WindowsSystemInputDriver* _this) {
 	std::uint32_t current = CMasterTimer_GetOSTime();
 	if (CHECK_FOR_DI_NEW_CONTROLLERS && (current - LAST_DI_CHECK_TIMESTAMP) >= 2000) {
 		auto oldControllerCount = _this->controllers;
-		_this->dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, EnumJoysticks, _this, DIEDFL_ATTACHEDONLY);
+		_this->dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, WindowsSystemInputDriver_EnumJoysticks, _this, DIEDFL_ATTACHEDONLY);
 		CHECK_FOR_DI_NEW_CONTROLLERS = false;
 		LAST_DI_CHECK_TIMESTAMP = CMasterTimer_GetOSTime();
 		if (_this->controllers > oldControllerCount) {
@@ -385,4 +386,72 @@ void __fastcall BeginInput(WindowsSystemInputDriver* _this) {
 			_this->state[BC_MOUSEMIDDLE].now = (dims2.rgbButtons[2] & 0x80) != 0;
 		}
 	}
+}
+
+bool WindowsSystemInputDriver::Initialize(HINSTANCE hInst, HWND hWnd) {
+	this->hWnd = hWnd;
+	for (unsigned long i = 0; i < XUSER_MAX_COUNT; ++i) {
+		XINPUT_CAPABILITIES_EX capabilities{};
+		if (XInputGetCapabilitiesEx(1, i, XINPUT_FLAG_GAMEPAD, &capabilities) == ERROR_SUCCESS) {
+			this->controller[this->controllers] = new XInputInputDriver(i);
+			logger::log_format("[WindowsSystemInputDriver::Initialize] Device {}_{} mapped to index {}!", this->controller[this->controllers]->DeviceName(), i, this->controllers);
+			this->controllers++;
+		}
+	}
+	if (DirectInput8Create(hInst, DIRECTINPUT_VERSION, IID_IDirectInput8A, reinterpret_cast<void**>(&this->dInput), NULL) == DI_OK) {
+		this->dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, WindowsSystemInputDriver_EnumJoysticks, this, DIEDFL_ATTACHEDONLY);
+	}
+	for (auto i = 0; i < controllers; i++) {
+		if (this->controller[i]->m_iApplicationControllerID >= 0 && this->controller[i]->m_iApplicationControllerID != i) {
+			if (this->controller[this->controller[i]->m_iApplicationControllerID] != nullptr) {
+				logger::log_format("[WindowsSystemInputDriver::Initialize] Device {} cannot be remapped to empty slot {}!", i, this->controller[i]->m_iApplicationControllerID);
+			}
+			else {
+				logger::log_format("[WindowsSystemInputDriver::Initialize] Device {} re-mapped to slot {}!", i, this->controller[i]->m_iApplicationControllerID);
+				ControllerInputDriver* pTempController = this->controller[this->controller[i]->m_iApplicationControllerID];
+				this->controller[this->controller[i]->m_iApplicationControllerID] = this->controller[i];
+				this->controller[i] = pTempController;
+			}
+		}
+	}
+	if (this->controllers < 11 && this->controller[this->controllers] == nullptr) {
+		char sMyDocumentsPath[260]{};
+		strcpy_s(sMyDocumentsPath, sizeof(sMyDocumentsPath), reinterpret_cast<const char*>(0x018d3138));
+		if (sMyDocumentsPath[0] == 0) {
+			strcpy_s(sMyDocumentsPath, sizeof(sMyDocumentsPath), ".\\data_dx\\buttmap\\");
+		}
+		strcat_s(sMyDocumentsPath, "keymap.ini");
+		this->controller[this->controllers] = new KeyControllerInputDriver(this, sMyDocumentsPath);
+		this->d_pKeyboard = this->controller[this->controllers];
+		this->controllers++;
+	}
+	/*
+	if (this->controllers > 1) {
+		this->d_pKeyboard->SetSharedController(this->controller[0]);
+		for (auto i = 0; i < this->controllers - 1; i++) {
+			this->controller[i]->SetSharedController(this->d_pKeyboard);
+		}
+	}
+	*/
+	if (FAILED(this->dInput->CreateDevice(GUID_SysMouse, &this->m_pMouse, NULL))) {
+		return false;
+	}
+	if (FAILED(this->m_pMouse->SetDataFormat(&c_dfDIMouse2))) {
+		return false;
+	}
+	this->m_pMouse->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND);
+	this->m_pMouse->Acquire();
+	if (FAILED(this->dInput->CreateDevice(GUID_SysKeyboard, &this->m_pKeyboard, NULL))) {
+		return false;
+	}
+	if (FAILED(this->m_pKeyboard->SetDataFormat(&c_dfDIKeyboard))) {
+		return false;
+	}
+	this->m_pKeyboard->SetCooperativeLevel(hWnd, DISCL_NONEXCLUSIVE | DISCL_FOREGROUND | DISCL_NOWINKEY);
+	this->m_pKeyboard->Acquire();
+	return true;
+}
+
+bool __fastcall WindowsSystemInputDriver_Initialize(WindowsSystemInputDriver* _this, std::uintptr_t edx, HINSTANCE hInst, HWND hWnd) {
+	return _this->Initialize(hInst, hWnd);
 }

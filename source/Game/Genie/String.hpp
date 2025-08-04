@@ -32,7 +32,7 @@ namespace Genie {
 			data = nullptr;
 		}
 		inline StringData* GetData() {
-			reinterpret_cast<StringData*>(reinterpret_cast<std::uintptr_t>(data) - sizeof(StringData));
+			return reinterpret_cast<StringData*>(reinterpret_cast<std::uintptr_t>(data) - sizeof(StringData));
 		}
 		inline void Append(const char* lit) {
 			Genie_String_Append(this, lit);

@@ -5,9 +5,40 @@
 #include "XInputInputDriver.hpp"
 #include "../../pentane.hpp"
 
+constexpr auto XINPUT_GAMEPAD_GUIDE = 0x0400;
+
 DWORD __stdcall XInputGetCapabilitiesEx(DWORD dwReserved, DWORD dwUserIndex, DWORD dwFlags, XINPUT_CAPABILITIES_EX* pCapabilitiesEx) {
-	auto func = reinterpret_cast<DWORD(WINAPI*)(DWORD, DWORD, DWORD, XINPUT_CAPABILITIES_EX*)>(GetProcAddress(GetModuleHandleA("XINPUT1_4.dll"), reinterpret_cast<const char*>(108)));
-	return func(dwReserved, dwUserIndex, dwFlags, pCapabilitiesEx);
+	HMODULE xInput14 = GetModuleHandleA("XINPUT1_4.dll");
+	if (xInput14 != nullptr) {
+		auto func = reinterpret_cast<DWORD(WINAPI*)(DWORD, DWORD, DWORD, XINPUT_CAPABILITIES_EX*)>(GetProcAddress(xInput14, reinterpret_cast<const char*>(108)));
+		return func(dwReserved, dwUserIndex, dwFlags, pCapabilitiesEx);
+	}
+	else {
+		XINPUT_CAPABILITIES capabilities{};
+		DWORD code = XInputGetCapabilities(dwUserIndex, dwFlags, &capabilities);
+		pCapabilitiesEx->Type = capabilities.Type;
+		pCapabilitiesEx->SubType = capabilities.SubType;
+		pCapabilitiesEx->Flags = capabilities.Flags;
+		pCapabilitiesEx->Gamepad = capabilities.Gamepad;
+		pCapabilitiesEx->Vibration = capabilities.Vibration;
+		pCapabilitiesEx->VendorId = 0x045E;
+		pCapabilitiesEx->ProductId = 0x02E0;
+		pCapabilitiesEx->VersionNumber = 0;
+		pCapabilitiesEx->Unknown1 = 0;
+		pCapabilitiesEx->Unknown2 = 0;
+		return code;
+	}
+}
+
+DWORD __stdcall XInputGetStateEx(DWORD dwUserIndex, XINPUT_STATE* pState) {
+	HMODULE xInput14 = GetModuleHandleA("XINPUT1_4.dll");
+	if (xInput14 != nullptr) {
+		auto func = reinterpret_cast<DWORD(WINAPI*)(DWORD, XINPUT_STATE*)>(GetProcAddress(xInput14, reinterpret_cast<const char*>(100)));
+		return func(dwUserIndex, pState);
+	}
+	else {
+		return XInputGetState(dwUserIndex, pState);
+	}
 }
 
 XInputInputDriver::XInputInputDriver(unsigned long userIndex) : ControllerInputDriver() {
@@ -51,7 +82,7 @@ void XInputInputDriver::BeginInput() {
 
 	XINPUT_STATE inputState{};
 
-	if (XInputGetState(m_dwUserIndex, &inputState) == ERROR_SUCCESS) {
+	if (XInputGetStateEx(m_dwUserIndex, &inputState) == ERROR_SUCCESS) {
 		SetState(ControllerButton::Left, (inputState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0);
 		SetState(ControllerButton::Down, (inputState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0);
 		SetState(ControllerButton::Right, (inputState.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0);

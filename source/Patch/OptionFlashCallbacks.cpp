@@ -108,7 +108,7 @@ void HandleSetCurrResolution(void* movie, float index) {
 }
 
 void HandleGetCurrGraphicType(void* movie) {
-	// Pass the 'graphic type index' (really if vsync is enabled)to the game through a Scaleform::Gfx::Value.
+	// Pass the 'graphic type index' (really if vsync is enabled) to the game through a Scaleform::Gfx::Value.
 	unsigned int data[3] = {};
 	data[1] = 3;
 	data[2] = std::bit_cast<std::uint32_t>(static_cast<float>(GLOBAL_CONFIG->vsync ? 1 : 0));

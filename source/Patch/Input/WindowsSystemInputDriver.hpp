@@ -27,9 +27,11 @@ public:
 	int lockedControllerIndex[11];
 	int numLockedControllers;
 public:
+	bool Initialize(HINSTANCE hInst, HWND hWnd);
 };
 
 static_assert(sizeof(WindowsSystemInputDriver) == 1120);
 
-void __fastcall BeginInput(class WindowsSystemInputDriver* _this);
-int __stdcall EnumJoysticks(const DIDEVICEINSTANCEA* devInst, void* udata);
+bool __fastcall WindowsSystemInputDriver_Initialize(class WindowsSystemInputDriver* _this, std::uintptr_t edx, HINSTANCE hInst, HWND hWnd);
+void __fastcall WindowsSystemInputDriver_BeginInput(class WindowsSystemInputDriver* _this);
+int __stdcall WindowsSystemInputDriver_EnumJoysticks(const DIDEVICEINSTANCEA* devInst, void* udata);

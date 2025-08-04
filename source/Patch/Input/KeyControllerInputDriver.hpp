@@ -9,6 +9,37 @@ inline auto KeyControllerInputDriver_LoadButtonMap = (bool(__thiscall*)(class Ke
 
 class KeyControllerInputDriver : public ControllerInputDriver {
 public:
+	enum class ButtonMap : int {
+		DPadUp = 0,
+		DPadDown,
+		DPadLeft,
+		DPadRight,
+		Stick1Up,
+		Stick1Down,
+		Stick1Left,
+		Stick1Right,
+		ButtonStick1,
+		Stick2Up,
+		Stick2Down,
+		Stick2Left,
+		Stick2Right,
+		ButtonStick2,
+		Cross,
+		Circle,
+		Triangle,
+		Square,
+		L1,
+		R1,
+		L2,
+		R2,
+		Start,
+		Select,
+		Walk,
+		CenterView,
+		FirstPerson,
+		Max
+	};
+public:
 	int m_iLastMouseX;
 	int m_iLastMouseY;
 	int m_bMouseLook;
@@ -17,7 +48,7 @@ public:
 	SystemInputDriver* m_sysInput;
 	float m_mouseSensitivity;
 	float m_keyboardSensitivity;
-	ButtonCode m_buttonMap[27];
+	ButtonCode m_buttonMap[std::to_underlying(ButtonMap::Max)];
 public:
 	KeyControllerInputDriver(SystemInputDriver* sysInput, const char* mapName);
 	inline virtual ~KeyControllerInputDriver() override {}
