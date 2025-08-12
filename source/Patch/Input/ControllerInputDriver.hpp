@@ -119,6 +119,44 @@ struct AxisPair {
 	float clampZonePercent;
 };
 
+struct ControllerPacket {
+	bool leftLast : 1;
+	bool leftNow : 1;
+	bool downLast : 1;
+	bool downNow : 1;
+	bool rightLast : 1;
+	bool rightNow : 1;
+	bool upLast : 1;
+	bool upNow : 1;
+	bool squareLast : 1;
+	bool squareNow : 1;
+	bool crossLast : 1;
+	bool crossNow : 1;
+	bool circleLast : 1;
+	bool circleNow : 1;
+	bool triangleLast : 1;
+	bool triangleNow : 1;
+	bool l1Last : 1;
+	bool l1Now : 1;
+	bool r1Last : 1;
+	bool r1Now : 1;
+	bool l2Last : 1;
+	bool l2Now : 1;
+	bool r2Last : 1;
+	bool r2Now : 1;
+	bool startLast : 1;
+	bool startNow : 1;
+	bool selectLast : 1;
+	bool selectNow : 1;
+	bool l3Last : 1;
+	bool l3Now : 1;
+	bool r3Last : 1;
+	bool r3Now : 1;
+	unsigned short axis[6];
+};
+
+static_assert(sizeof(ControllerPacket) == 16);
+
 class ControllerInputDriver {
 public:
 	unsigned int m_bInvalidController;
@@ -179,6 +217,7 @@ public:
 	virtual void SetSecondaryController(ControllerInputDriver* controller);
 	virtual bool AnyButtonPressed() = 0;
 	virtual const char* Identify() = 0;
+	virtual ControllerPacket SerializePacket();
 public:
 	inline void SetSharedController(ControllerInputDriver* sharedController) {
 		m_pSharedController = sharedController;
@@ -199,7 +238,7 @@ public:
 		m_rawStick[std::to_underlying(axis)] = static_cast<float>(index - entries / 2.0f) / (entries / 2.0f);
 	}
 	inline void UpdateAxisPairs() {
-		for (int i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
+		for (auto i = 0; i < std::to_underlying(AnalogAxis::Max); i++) {
 			if (i != std::to_underlying(AnalogAxis::Invalid) && std::to_underlying(m_axisPairs[i].axis1) == i) {
 				float axis1 = m_rawStick[i];
 				float origAxis1 = axis1;

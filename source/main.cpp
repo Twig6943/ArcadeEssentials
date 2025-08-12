@@ -40,6 +40,7 @@ inline auto UnkExcelDataBase_GetUnk2 = (void(__thiscall*)(void*, void*, void*, f
 inline auto UnkExcelDataBase_GetUnk3 = (void(__thiscall*)(void*, std::uint32_t, void*, void*))(0x0052af10);
 inline auto PersistentData_GetGlobal = (int(__thiscall*)(void*, const char*))(0x00cf0e20);
 inline auto PersistentData_SetGlobal = (void(__thiscall*)(void*, const char*, std::uint32_t))(0x00cf0e40);
+inline auto PersistentData_IsSetGlobal = (bool(__thiscall*)(void*, const char*))(0x00cf0e70);
 inline auto FUN_00f675d0 = (std::uint32_t(__thiscall*)(void*, const char*, std::uint32_t))(0x00f675d0);
 inline auto FUN_00f66d60 = (std::uint32_t(__thiscall*)(void*, std::uint32_t))(0x00f66d60);
 inline auto GameCommon_SetPlayerSfxVolume = (void(__thiscall*)(void*, float, char))(0x00eb48b0);
@@ -152,6 +153,16 @@ DefineReplacementHook(CarsFrontEnd_SetScreen) {
 					logger::log_format("[CarsFrontEnd::SetScreen] Locking player 0 to controller 0...");
 					(*g_InputPtr)->LockPlayerToController(0, 0);
 					*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0;
+				}
+				for (auto i = 0; i < 11; i++) {
+					if (std::string_view((*g_InputPtr)->controller[i]->Identify()) == "Virtual") {
+						logger::log_format("[CarsFrontEnd::SetScreen] Locking player 1 to controller {}...", i);
+						(*g_InputPtr)->LockPlayerToController(1, i);
+						break;
+					}
+				}
+				if (!(*g_InputPtr)->ControllerLocked(1)) {
+					logger::log_format("[CarsFrontEnd::SetScreen] Virtual controller was not locked!");
 				}
 			}
 		}
@@ -443,6 +454,16 @@ DefineReplacementHook(OnConfirmHook) {
 					(*g_InputPtr)->LockPlayerToController(0, 0);
 					*reinterpret_cast<int*>(reinterpret_cast<std::uintptr_t>(_this) + 0x7DC) = 0;
 				}
+			}
+			for (auto i = 0; i < 11; i++) {
+				if (std::string_view((*g_InputPtr)->controller[i]->Identify()) == "Virtual") {
+					logger::log_format("[CarsFrontEnd::OnConfirm] Locking player 1 to controller {}...", i);
+					(*g_InputPtr)->LockPlayerToController(1, i);
+					break;
+				}
+			}
+			if (!(*g_InputPtr)->ControllerLocked(1)) {
+				logger::log_format("[CarsFrontEnd::OnConfirm] Virtual controller was not locked!");
 			}
 #endif
 			_CarsFrontEnd_SetGameModeIndex(_this, _selected_menu);
@@ -873,7 +894,6 @@ DefineInlineHook(InitHudElementsRace) {
 #endif
 
 		assert(mode == GameProgressionManager::MissionMode::Race);
-		assert(playerCount != 1);
 
 		// 1 Player -> 2, 2 Player -> 3, Else -> 4.
 		if (playerCount == 1) {
@@ -1150,7 +1170,6 @@ DefineInlineHook(AdjustScaleformViewport) {
 	}
 };
 
-
 #ifdef _DEBUG
 std::chrono::time_point<std::chrono::system_clock> start_time{};
 #endif
@@ -1367,6 +1386,7 @@ extern "C" void __stdcall Pentane_Main() {
 		// Fixes an issue where non-race mission modes would always fall back to the same UI.
 		InitHudElements::install_at_ptr(0x0055114c);
 		InitHudElementsRace::install_at_ptr(0x00551054);
+		sunset::inst::nop(reinterpret_cast<void*>(0x0055101b), 2);
 
 		// Fixes the Rev-It! icon meter dissappearing after an event starts.
 		FixRevITUI::install_at_ptr(0x00547ca0);

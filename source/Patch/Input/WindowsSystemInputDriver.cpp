@@ -15,6 +15,7 @@
 #include "WindowsControllerInputDriver.hpp"
 #include "XInputInputDriver.hpp"
 #include "KeyControllerInputDriver.hpp"
+#include "VirtualController.hpp"
 #include "../../pentane.hpp"
 
 inline auto CMasterTimer_GetOSTime = (std::uint32_t(_cdecl*)())(0x00770280);
@@ -423,6 +424,11 @@ bool WindowsSystemInputDriver::Initialize(HINSTANCE hInst, HWND hWnd) {
 		strcat_s(sMyDocumentsPath, "keymap.ini");
 		this->controller[this->controllers] = new KeyControllerInputDriver(this, sMyDocumentsPath);
 		this->d_pKeyboard = this->controller[this->controllers];
+		this->controllers++;
+	}
+	if (this->controllers < 11 && this->controller[this->controllers] == nullptr) {
+		logger::log_format("[WindowsSystemInputDriver::Initialize] Added virtual controller to slot: {}!", this->controllers);
+		this->controller[this->controllers] = new VirtualController();
 		this->controllers++;
 	}
 	/*

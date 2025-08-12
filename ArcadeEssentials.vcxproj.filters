@@ -88,6 +88,9 @@
     <ClCompile Include="source\Patch\Input\ControllerInputDriver.cpp">
       <Filter>Patch\Input</Filter>
     </ClCompile>
+    <ClCompile Include="source\Patch\Input\VirtualController.cpp">
+      <Filter>Patch\Input</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\Game\Types.hpp">
@@ -211,6 +214,9 @@
       <Filter>Patch\Input</Filter>
     </ClInclude>
     <ClInclude Include="source\Patch\Input\ControllerInputDriver.hpp">
+      <Filter>Patch\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="source\Patch\Input\VirtualController.hpp">
       <Filter>Patch\Input</Filter>
     </ClInclude>
   </ItemGroup>

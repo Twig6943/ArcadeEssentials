@@ -114,6 +114,7 @@
     <ClCompile Include="source\Patch\Input\ControllerInputDriver.cpp" />
     <ClCompile Include="source\Patch\Input\KeyControllerInputDriver.cpp" />
     <ClCompile Include="source\Game\Input\SystemInputDriver.cpp" />
+    <ClCompile Include="source\Patch\Input\VirtualController.cpp" />
     <ClCompile Include="source\Patch\Input\XInputInputDriver.cpp" />
     <ClCompile Include="source\main.cpp" />
     <ClCompile Include="source\Patch\Components\ActiveMoves.cpp" />
@@ -146,6 +147,7 @@
     <ClInclude Include="source\Patch\Input\ControllerInputDriver.hpp" />
     <ClInclude Include="source\Patch\Input\KeyControllerInputDriver.hpp" />
     <ClInclude Include="source\Game\Input\SystemInputDriver.hpp" />
+    <ClInclude Include="source\Patch\Input\VirtualController.hpp" />
     <ClInclude Include="source\Patch\Input\XInputInputDriver.hpp" />
     <ClInclude Include="source\Game\Kernel.hpp" />
     <ClInclude Include="source\Game\Physics\RigidBody.hpp" />
