@@ -11,6 +11,7 @@
 #include "Game/GameSpecificFlashImpl.hpp"
 #include "Game/Genie/String.hpp"
 #include "Game/GameProgressionManager.hpp"
+#include "Game/Stage/Cars2VehicleDBlock.hpp"
 #include "Game/Stage/StageEntity.hpp"
 #include "Game/Components/ActiveMoves.hpp"
 #include "Game/Components/CarsReactionMonitor.hpp"
@@ -1170,6 +1171,20 @@ DefineInlineHook(AdjustScaleformViewport) {
 	}
 };
 
+DefineReplacementHook(CarsVehicleSetSteer) {
+	static void __fastcall callback(CarsVehicle * _this, std::uintptr_t edx, float steer) {
+		bool isBwd = false;
+		Cars2VehicleDBlock* dBlock = Cars2VehicleDBlock::Get(*_this->actor);
+		if (dBlock != nullptr) {
+			if (dBlock->m_activeMoves != nullptr) {
+				// If the car is backwards driving, and is player-controlled, invert the steering input.
+				isBwd = dBlock->m_activeMoves->m_actionState == ActiveMoves::ActionState::BackwardsDriving && dBlock->m_playerNum != -1;
+			}
+		}
+		*reinterpret_cast<float*>(reinterpret_cast<std::uintptr_t>(_this) + 0x8e8) = isBwd ? -steer : steer;
+	}
+};
+
 #ifdef _DEBUG
 std::chrono::time_point<std::chrono::system_clock> start_time{};
 #endif
@@ -1493,6 +1508,9 @@ extern "C" void __stdcall Pentane_Main() {
 
 		// Fixes UI scaling at resolutions higher than 720p.
 		AdjustScaleformViewport::install_at_ptr(0x0116e28e);
+
+		// Inverts backwards-driving controls for player-controlled cars.
+		CarsVehicleSetSteer::install_at_ptr(0x006b10a0);
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	} 
