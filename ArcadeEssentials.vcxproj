@@ -143,7 +143,9 @@
     <ClInclude Include="source\Game\DynamicArray.hpp" />
     <ClInclude Include="source\Game\GameProgressionManager.hpp" />
     <ClInclude Include="source\Game\GameSpecificFlashImpl.hpp" />
+    <ClInclude Include="source\Game\Genie\List.hpp" />
     <ClInclude Include="source\Game\Genie\String.hpp" />
+    <ClInclude Include="source\Game\Scaleform\Value.hpp" />
     <ClInclude Include="source\Patch\Input\ControllerInputDriver.hpp" />
     <ClInclude Include="source\Patch\Input\KeyControllerInputDriver.hpp" />
     <ClInclude Include="source\Game\Input\SystemInputDriver.hpp" />

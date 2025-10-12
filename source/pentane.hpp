@@ -5,10 +5,6 @@
 #include <format>
 #include <chrono>
 
-constexpr uint8_t hex_char_to_byte(char c) {
-	return (c >= '0' && c <= '9') ? (c - '0') : (c >= 'a' && c <= 'f') ? (c - 'a' + 10) : (c >= 'A' && c <= 'F') ? (c - 'A' + 10) : throw std::invalid_argument("Invalid Character");
-}
-
 struct PentaneCStringView {
 	const char* const data;
 	const std::size_t data_len;

@@ -43,6 +43,7 @@ public:
 		Medium = 1,
 		Heavy = 2,
 	};
+	
 	struct ActiveMovesSettings {
 		float bunnyHopHeight;
 		float sideStepHeight;
@@ -84,8 +85,14 @@ public:
 		float jumpTrickFailLRCrashTime;
 		float jumpTrickFailUDCrashTime;
 	};
-	struct SteeringSettings;
-	struct GameSettings;
+	
+	struct SteeringSettings {};
+	
+	struct GameSettings {};
+
+	int mcqueenIndex;
+	CarInfo* carInfos;
+	unsigned int carInfosLen;
 public:
 	std::uint32_t GetCarId(ActorHandle handle) {
 		return CarManager_GetCarId(this, handle);

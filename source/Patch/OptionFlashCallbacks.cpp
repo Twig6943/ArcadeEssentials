@@ -5,11 +5,11 @@
 #include <string>
 #include <d3d9.h>
 #include "../Game/GameSpecificFlashImpl.hpp"
+#include "../Game/Scaleform/Value.hpp"
+#include "../Game/Genie/String.hpp"
 #include "../config.hpp"
 #include "OptionFlashCallbacks.hpp"
-#include "../Game/Genie/String.hpp"
 
-inline auto ScaleformValueDestructor = (void* (__thiscall*)(void*))(0x005fb740);
 inline auto ErrorPopup_MarkForClose = (void* (__thiscall*)(std::uintptr_t*))(0x00e9f8d0);
 inline auto Flash_Movie_CallFlashFunction = (void(__cdecl*)(std::uintptr_t, const char*, ...))(0x01168690);
 
@@ -72,14 +72,11 @@ void HandleGetAllResolutions(void* movie) {
 		}
 	}
 	// Pass the list to the game through a Scaleform::Gfx::Value.
-	unsigned int data[3] = {};
-	data[1] = 4;
-	data[2] = reinterpret_cast<std::uint32_t>(return_string.data());
+	Scaleform::GFx::Value data(return_string.data());
 	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
-	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, Scaleform::GFx::Value*)>(*inst + 200);
 	// Set the return value for the Flash function.
-	func(inst, data);
-	ScaleformValueDestructor(data);
+	func(inst, &data);
 	return;
 }
 
@@ -89,14 +86,11 @@ void HandleGetCurrResolution(void* movie) {
 	int index = std::find(VALID_TARGETS.begin(), VALID_TARGETS.end(), configured) - VALID_TARGETS.begin();
 
 	// Pass the resolution index to the game through a Scaleform::Gfx::Value.
-	unsigned int data[3] = {};
-	data[1] = 3;
-	data[2] = std::bit_cast<std::uint32_t>(static_cast<float>(index));
+	Scaleform::GFx::Value data(static_cast<float>(index));
 	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
-	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, Scaleform::GFx::Value*)>(*inst + 200);
 	// Set the return value for the Flash function.
-	func(inst, data);
-	ScaleformValueDestructor(data);
+	func(inst, &data);
 	return;
 }
 
@@ -109,14 +103,11 @@ void HandleSetCurrResolution(void* movie, float index) {
 
 void HandleGetCurrGraphicType(void* movie) {
 	// Pass the 'graphic type index' (really if vsync is enabled) to the game through a Scaleform::Gfx::Value.
-	unsigned int data[3] = {};
-	data[1] = 3;
-	data[2] = std::bit_cast<std::uint32_t>(static_cast<float>(GLOBAL_CONFIG->vsync ? 1 : 0));
+	Scaleform::GFx::Value data(static_cast<float>(GLOBAL_CONFIG->vsync ? 1 : 0));
 	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
-	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, Scaleform::GFx::Value*)>(*inst + 200);
 	// Set the return value for the Flash function.
-	func(inst, data);
-	ScaleformValueDestructor(data);
+	func(inst, &data);
 }
 
 void HandleSetCurrGraphicType(void* movie, float vsync) {
@@ -126,14 +117,11 @@ void HandleSetCurrGraphicType(void* movie, float vsync) {
 
 void HandleGetMenuOptionsList(void* movie) {
 	// Pass the string to the game through a Scaleform::Gfx::Value.
-	unsigned int data[3] = {};
-	data[1] = 4;
-	data[2] = reinterpret_cast<std::uint32_t>("SharedText_OK");
+	Scaleform::GFx::Value data("SharedText_OK");
 	auto* inst = reinterpret_cast<std::uintptr_t*>(movie);
-	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, void*)>(*inst + 200);
+	auto func = *reinterpret_cast<std::uint32_t(__thiscall**)(void*, Scaleform::GFx::Value*)>(*inst + 200);
 	// Set the return value for the Flash function.
-	func(inst, data);
-	ScaleformValueDestructor(data);
+	func(inst, &data);
 }
 
 void HandleSelectOption(void* movie) {

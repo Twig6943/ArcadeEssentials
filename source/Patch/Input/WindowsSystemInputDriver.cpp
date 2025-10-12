@@ -426,11 +426,13 @@ bool WindowsSystemInputDriver::Initialize(HINSTANCE hInst, HWND hWnd) {
 		this->d_pKeyboard = this->controller[this->controllers];
 		this->controllers++;
 	}
+	/*
 	if (this->controllers < 11 && this->controller[this->controllers] == nullptr) {
 		logger::log_format("[WindowsSystemInputDriver::Initialize] Added virtual controller to slot: {}!", this->controllers);
 		this->controller[this->controllers] = new VirtualController();
 		this->controllers++;
 	}
+	*/
 	/*
 	if (this->controllers > 1) {
 		this->d_pKeyboard->SetSharedController(this->controller[0]);
