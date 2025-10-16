@@ -36,10 +36,6 @@ static_assert(sizeof(PluginInformation) == 0x400);
 extern void(*Pentane_LogUTF8)(PentaneCStringView*);
 extern int(*Pentane_IsWindowedModeEnabled)();
 
-#ifdef _DEBUG
-extern std::chrono::time_point<std::chrono::system_clock> start_time;
-#endif
-
 namespace logger {
 	inline void log(const std::string& str) {
 		PentaneCStringView c_str{ str.data(), str.length() };
@@ -48,14 +44,7 @@ namespace logger {
 	template<typename... Args>
 	void log_format(std::format_string<Args...> fmt, Args&&... args) {
 		std::string str = std::vformat(fmt.get(), std::make_format_args(args...));
-#ifdef _DEBUG
-		double seconds = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time).count() * 0.001;
-		double minutes = std::floor(seconds / 60.0);
-		std::string timestamp = std::format(" [{}:{:.3f}]", minutes, seconds - minutes * 60.0);
-		log(str + timestamp);
-#else
 		log(str);
-#endif
 	}
 };
 
