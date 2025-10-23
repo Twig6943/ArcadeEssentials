@@ -8,30 +8,23 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repository with Submodules
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-      - name: Install Visual Studio Build Tools
+      - name: Install Visual Studio Build Tools via Chocolatey
         shell: pwsh
         run: |
-          $vsInstallerUrl = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
-          $vsInstallerPath = "$env:RUNNER_TEMP\vs_BuildTools.exe"
           $installDir = "C:\MyVS"
+          choco install visualstudio2022buildtools --yes `
+            --package-parameters "--installPath `"$installDir`" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart --wait"
 
-          Invoke-WebRequest $vsInstallerUrl -OutFile $vsInstallerPath
-
-          Start-Process -Wait -FilePath $vsInstallerPath -ArgumentList `
-            "--installPath `"$installDir`"", `
-            "--add Microsoft.VisualStudio.Workload.VCTools", `
-            "--includeRecommended", `
-            "--passive", "--norestart", "--wait"
-
-      - name: Build
+      - name: Build with MSBuild
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
-          cmake -S ArcadeEssentials -B ArcadeEssentials\build -G "NMake Makefiles"
-          cmake --build ArcadeEssentials\build --config Release
+          msbuild ArcadeEssentials\ArcadeEssentials.sln /p:Configuration=Release /m
 
       - name: Upload Dll
         uses: actions/upload-artifact@v4
