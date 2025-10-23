@@ -24,10 +24,10 @@ jobs:
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
-          msbuild ArcadeEssentials\ArcadeEssentials.sln /p:Configuration=Release /m
+          msbuild ArcadeEssentials.sln /p:Configuration=Release /m
 
       - name: Upload Dll
         uses: actions/upload-artifact@v4
         with:
           name: Binaries
-          path: ${{ github.workspace }}/ArcadeEssentials/build/*
+          path: ${{ github.workspace }}/build/*
