@@ -1,4 +1,4 @@
-name: Build
+name: Build Server
 
 on:
   workflow_dispatch:
@@ -26,23 +26,15 @@ jobs:
             "--includeRecommended", `
             "--passive", "--norestart", "--wait"
 
-      - name: Setup MSVC Environment
-        shell: cmd
-        run: |
-          call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
-
-      - name: Clone repo
-        run: git clone https://github.com/Twig6943/ArcadeEssentials
-
       - name: Build
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
-          cmake -S ArcadeEssentials\ -B ArcadeEssentials\build -G "NMake Makefiles"
+          cmake -S ArcadeEssentials -B ArcadeEssentials\build -G "NMake Makefiles"
           cmake --build ArcadeEssentials\build --config Release
 
       - name: Upload Dll
         uses: actions/upload-artifact@v4
         with:
           name: Binaries
-          path: D:/a/ArcadeEssentials/ArcadeEssentials/ArcadeEssentials/build/*
+          path: ${{ github.workspace }}/ArcadeEssentials/build/*
