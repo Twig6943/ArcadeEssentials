@@ -31,14 +31,14 @@ jobs:
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
 
-      - name: Clone Auric
+      - name: Clone repo
         run: git clone https://github.com/Twig6943/ArcadeEssentials
 
       - name: Build
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
-          cmake -S Auric\ -B ArcadeEssentials\build -G "NMake Makefiles"
+          cmake -S ArcadeEssentials\ -B ArcadeEssentials\build -G "NMake Makefiles"
           cmake --build ArcadeEssentials\build --config Release
 
       - name: Upload Dll
