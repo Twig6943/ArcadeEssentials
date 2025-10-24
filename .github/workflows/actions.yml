@@ -20,32 +20,11 @@ jobs:
           choco install visualstudio2022buildtools --yes `
             --package-parameters "--installPath `"$installDir`" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart --wait"
 
-      - name: Build with MSBuild (auto-detect platform)
-        shell: pwsh
+      - name: Build with MSBuild (Release|Win32)
+        shell: cmd
         run: |
-          # Call VS environment
-          & "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
-
-          # Read the solution file
-          $slnFile = "ArcadeEssentials.sln"
-          $slnContent = Get-Content $slnFile
-
-          # Find the first Release configuration line in SolutionConfigurationPlatforms
-          $line = $slnContent |
-            Select-String -Pattern '^Release\|(.+) = Release\|.+$' |
-            Select-Object -First 1
-
-          if (-not $line) {
-              Write-Error "Cannot detect Release platform in the solution file."
-              exit 1
-          }
-
-          # Extract platform
-          $platform = $line.Matches[0].Groups[1].Value
-          Write-Host "Detected platform: $platform"
-
-          # Build the solution
-          msbuild $slnFile /p:Configuration=Release /p:Platform=$platform /m
+          call "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
+          msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=Win32 /m
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
