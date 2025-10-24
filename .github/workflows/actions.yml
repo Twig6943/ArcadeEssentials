@@ -24,7 +24,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
-          msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=Win32 /m
+          msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=x86 /m
 
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
