@@ -24,6 +24,8 @@ jobs:
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
+          git clone https://github.com/microsoft/Detours.git dependencies/detours
+          git clone https://github.com/marzer/tomlplusplus.git dependencies/toml++
           msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=x86 /m
 
       - name: Upload Binaries
