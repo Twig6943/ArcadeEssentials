@@ -23,8 +23,8 @@ jobs:
       - name: Build with MSBuild
         shell: cmd
         run: |
-          call "C:\MyVS\VC\Auxiliary\Build\vcvars64.bat"
-          msbuild ArcadeEssentials.sln /p:Configuration=Release /m
+          call "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
+          msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=Win32 /m
 
       - name: Upload Dll
         uses: actions/upload-artifact@v4
