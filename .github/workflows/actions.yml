@@ -13,6 +13,7 @@ jobs:
         with:
           submodules: recursive
 
+      # Install Visual Studio Build Tools
       - name: Install Visual Studio Build Tools via Chocolatey
         shell: pwsh
         run: |
@@ -20,14 +21,45 @@ jobs:
           choco install visualstudio2022buildtools --yes `
             --package-parameters "--installPath `"$installDir`" --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart --wait"
 
+      # Install Git (needed by vcpkg)
+      - name: Install Git
+        shell: pwsh
+        run: |
+          choco install git --yes
+
+      # Clone and bootstrap vcpkg
+      - name: Install vcpkg
+        shell: pwsh
+        run: |
+          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+          cd C:\vcpkg
+          .\bootstrap-vcpkg.bat
+          echo "VCPKG_ROOT=C:\vcpkg" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      # Install dependencies (if manifest exists)
+      - name: Install vcpkg dependencies
+        shell: pwsh
+        run: |
+          if (Test-Path "${{ github.workspace }}\vcpkg.json") {
+            & C:\vcpkg\vcpkg.exe install --triplet x86-windows --clean-after-build
+          } else {
+            Write-Host "No vcpkg.json found — skipping dependency install."
+          }
+
+      # Optional: integrate vcpkg with MSBuild globally
+      - name: Integrate vcpkg with MSBuild
+        shell: pwsh
+        run: |
+          & C:\vcpkg\vcpkg.exe integrate install
+
+      # Build project using MSBuild
       - name: Build with MSBuild (Release|Win32)
         shell: cmd
         run: |
           call "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
-          git clone https://github.com/microsoft/Detours.git dependencies/detours
-          git clone https://github.com/marzer/tomlplusplus.git dependencies/toml++
           msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=x86 /m
 
+      # Upload build artifacts
       - name: Upload Binaries
         uses: actions/upload-artifact@v4
         with:
