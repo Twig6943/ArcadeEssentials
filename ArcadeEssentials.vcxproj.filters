@@ -233,11 +233,11 @@
     <None Include="plugin.def">
       <Filter>Source</Filter>
     </None>
-    <None Include="source\Patch\Private\Testing.inl">
       <Filter>Source\Patch\Private</Filter>
     </None>
     <None Include="source\Patch\Private\MessageLogging.inl">
       <Filter>Source\Patch\Private</Filter>
     </None>
   </ItemGroup>
+
 </Project>
