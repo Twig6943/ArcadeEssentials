@@ -64,8 +64,6 @@ inline void** g_Game = reinterpret_cast<void**>(0x01929bfc);
 inline std::uintptr_t* g_SaveGame = reinterpret_cast<std::uintptr_t*>(0x0192b8d0);
 inline std::uintptr_t* g_FlashGui = reinterpret_cast<std::uintptr_t*>(0x0192e0e4);
 
-#include "Patch/Private/Testing.inl"
-
 enum CarsFrontEndScreen {
 	Invalid = 0,
 	ExitToWindows = 1,
@@ -1551,4 +1549,5 @@ extern "C" void __stdcall Pentane_Main() {
 
 		logger::log("[ArcadeEssentials::Pentane_Main] Installed hooks!");
 	} 
+
 }
