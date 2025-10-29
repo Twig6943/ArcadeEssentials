@@ -175,9 +175,9 @@
   <ItemGroup>
     <None Include="plugin.def" />
     <None Include="source\Patch\Private\MessageLogging.inl" />
-    <None Include="source\Patch\Private\Testing.inl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+
 </Project>
