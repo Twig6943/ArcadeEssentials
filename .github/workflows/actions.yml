@@ -10,8 +10,6 @@ jobs:
     steps:
       - name: Checkout Repository with Submodules
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
       # Install Visual Studio Build Tools
       - name: Install Visual Studio Build Tools via Chocolatey
@@ -53,9 +51,12 @@ jobs:
           & C:\vcpkg\vcpkg.exe integrate install
 
       # Build project using MSBuild
-      - name: Build with MSBuild (Release|Win32)
+      - name: Build with MSBuild
         shell: cmd
         run: |
+          cd dependencies
+          git clone -b x64-support --single-branch https://github.com/itsmeft24/sunset
+          cd ..
           call "C:\MyVS\VC\Auxiliary\Build\vcvars32.bat"
           msbuild ArcadeEssentials.sln /p:Configuration=Release /p:Platform=x86 /m
 
